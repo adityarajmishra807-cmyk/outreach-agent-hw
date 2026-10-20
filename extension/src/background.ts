@@ -1,6 +1,7 @@
 import {
   canTransitionCampaign,
   canTransitionQueueTask,
+  cancelPendingQueueTasks,
   countQueueTasks,
   enqueueQueueTask,
   type Campaign,
@@ -104,16 +105,7 @@ async function transitionActiveCampaign(
   };
   // On cancellation, pending work is skipped so it cannot accidentally resume.
   const queueTasks = nextStatus === "cancelled"
-    ? current.queueTasks.map((task) => {
-        if (task.campaignId !== campaignId) return task;
-        if (task.status === "pending") {
-          return transitionQueueTask(task, "skipped", { error: "Campaign cancelled by user." });
-        }
-        if (task.status === "processing") {
-          return transitionQueueTask(task, "needs_review", { error: "Campaign cancelled while task was processing; verify state before retrying." });
-        }
-        return task;
-      })
+    ? cancelPendingQueueTasks(current.queueTasks, campaignId)
     : current.queueTasks;
   const next = {
     campaigns: current.campaigns.map((campaign) => campaign.id === campaignId ? updated : campaign),
