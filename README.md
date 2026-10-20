@@ -32,7 +32,7 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 
 The foundation scaffold and queue domain logic are implemented on `main`. CI has passed tests, type checking, and builds on the implementation commits reviewed. The latest workflow also uploads a loadable extension artifact; check [GitHub Actions](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions) for its final result.
 
-**Still incomplete:** manual Chrome smoke testing, a committed npm lockfile, CSV ingestion, runtime Supabase integration, Gemini drafting, and source integrations. Phase 1 is not called complete until the latest CI run and manual Chrome QA are complete.
+**Phase 1 status:** Latest CI passed. The one remaining acceptance step is a manual Chrome smoke test using the packaged extension. CSV ingestion, runtime Supabase integration, Gemini drafting, and source integrations belong to later phases. A committed npm lockfile is recommended hardening, not a functional blocker.
 
 ## Development
 
