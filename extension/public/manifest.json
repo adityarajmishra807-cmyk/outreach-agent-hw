@@ -13,6 +13,6 @@
     "default_title": "Open Horizon Works Agent"
   },
   "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_path": "src/sidepanel.html"
   }
 }
