@@ -49,7 +49,7 @@ The web health endpoint is `/api/health`.
 - [Source access matrix](docs/SOURCE-ACCESS-MATRIX.md)
 - [Extension setup](extension/README.md)
 
-**Phase 1 scaffold is in progress on the `phase-1-foundation` branch.** The current extension can create and persist local campaign records and control campaign status. Lead discovery, Supabase runtime integration, and Gemini drafting are not connected yet.
+**Phase 1 scaffold is in progress on the `phase-1-foundation` branch.** Initial CI passes for tests, type checks, and both builds. The current extension can create and persist local campaign records and control campaign status. Lead ingestion, Supabase runtime integration, and Gemini drafting are not connected yet. See [Phase 1 progress](docs/PHASE-1-FOUNDATION.md).
 
 The extension intentionally declares no website host permissions and has no content scripts at this stage. Meta/Instagram automation stays gated. Google Maps scraping is out of scope.
 
