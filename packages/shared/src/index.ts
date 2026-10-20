@@ -185,6 +185,10 @@ export function transitionQueueTask(
   if (!canTransitionQueueTask(task.status, nextStatus)) {
     throw new Error(`Invalid queue task transition: ${task.status} -> ${nextStatus}`);
   }
+  // One initial attempt plus at most two retries, as specified for transient failures.
+  if (nextStatus === "processing" && task.attempts >= 3) {
+    throw new Error("Queue task retry budget exhausted; review the task manually.");
+  }
   const now = options.now ?? new Date().toISOString();
   const next: QueueTask = { ...task, status: nextStatus, updatedAt: now };
   if (nextStatus === "processing") next.attempts += 1;
