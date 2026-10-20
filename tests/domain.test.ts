@@ -100,8 +100,7 @@ describe("queue tasks", () => {
       if (attempt < 2) task = transitionQueueTask(task, "pending");
     }
     expect(task.attempts).toBe(3);
-    const pendingForForbiddenRetry = transitionQueueTask(task, "pending");
-    expect(() => transitionQueueTask(pendingForForbiddenRetry, "processing")).toThrow(/retry budget exhausted/i);
+    expect(() => transitionQueueTask(task, "pending")).toThrow(/retry budget exhausted/i);
   });
 
   it("counts only tasks belonging to the selected campaign", () => {
