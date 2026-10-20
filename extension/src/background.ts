@@ -47,11 +47,30 @@ async function saveState(state: ExtensionState): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEY]: state });
 }
 
+// Runs once per service-worker activation. Interrupted work is flagged for review;
+// it is never automatically replayed when its last state is uncertain.
+let recoveryPromise: Promise<void> | null = null;
+
+async function ensureRecovered(): Promise<void> {
+  if (!recoveryPromise) {
+    recoveryPromise = (async () => {
+      const current = await loadState();
+      const queueTasks = reconcileInterruptedQueueTasks(current.queueTasks);
+      const hasInterruptedTasks = queueTasks.some((task, index) =>
+        task.status !== current.queueTasks[index]?.status
+      );
+      if (hasInterruptedTasks) await saveState({ ...current, queueTasks });
+    })();
+  }
+  await recoveryPromise;
+}
+
 function makeId(): string {
   return crypto.randomUUID();
 }
 
 async function createCampaign(config: CampaignConfig): Promise<ExtensionState> {
+  await ensureRecovered();
   const errors = validateCampaignConfig(config);
   if (errors.length) throw new Error(errors.join(" "));
   const current = await loadState();
@@ -72,6 +91,7 @@ async function transitionActiveCampaign(
   campaignId: string,
   nextStatus: Campaign["status"]
 ): Promise<ExtensionState> {
+  await ensureRecovered();
   const current = await loadState();
   const target = current.campaigns.find((campaign) => campaign.id === campaignId);
   if (!target) throw new Error("Campaign not found.");
@@ -98,6 +118,7 @@ async function transitionActiveCampaign(
 }
 
 async function enqueueTask(input: { taskId: string; campaignId: string; leadId: string }): Promise<ExtensionState> {
+  await ensureRecovered();
   const current = await loadState();
   const campaign = current.campaigns.find((item) => item.id === input.campaignId);
   if (!campaign) throw new Error("Campaign not found.");
@@ -116,6 +137,7 @@ async function enqueueTask(input: { taskId: string; campaignId: string; leadId: 
 }
 
 async function updateTask(input: { taskId: string; nextStatus: QueueTaskStatus; error?: string }): Promise<ExtensionState> {
+  await ensureRecovered();
   const current = await loadState();
   const task = current.queueTasks.find((item) => item.id === input.taskId);
   if (!task) throw new Error("Queue task not found.");
@@ -144,6 +166,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   const run = async (): Promise<Record<string, unknown>> => {
     switch (message.type) {
       case "GET_STATE":
+        await ensureRecovered();
         return { ok: true, state: await loadState() };
       case "CREATE_CAMPAIGN":
         return { ok: true, state: await createCampaign(message.config) };
@@ -158,6 +181,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       case "TRANSITION_TASK":
         return { ok: true, state: await updateTask(message) };
       case "GET_QUEUE_COUNTS": {
+        await ensureRecovered();
         const state = await loadState();
         if (!state.campaigns.some((campaign) => campaign.id === message.campaignId)) throw new Error("Campaign not found.");
         return { ok: true, counts: countQueueTasks(state.queueTasks, message.campaignId) };
