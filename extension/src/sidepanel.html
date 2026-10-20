@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>Horizon Works Agent</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand-mark">HW</div>
+        <div>
+          <p class="eyebrow">HORIZON WORKS</p>
+          <h1>Outreach Agent</h1>
+        </div>
+      </header>
+      <div class="safety-note"><strong>Draft-only mode</strong><span>The extension never sends Instagram messages.</span></div>
+      <main>
+        <section class="section-heading">
+          <div><p class="eyebrow">CAMPAIGN SETUP</p><h2>Start a campaign</h2></div>
+          <span class="limit">MAX 100 LEADS</span>
+        </section>
+        <form id="campaign-form">
+          <label>Campaign name<input name="name" required placeholder="Dehradun gyms — October" /></label>
+          <div class="two-column">
+            <label>Business niche<input name="niche" required placeholder="Gyms" /></label>
+            <label>Target location<input name="location" required placeholder="Dehradun" /></label>
+          </div>
+          <label>Horizon Works service
+            <select name="serviceOffer" required>
+              <option value="Website design and development">Website design and development</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="Landing pages">Landing pages</option>
+              <option value="Website redesign">Website redesign</option>
+              <option value="Custom web applications">Custom web applications</option>
+              <option value="Automation and digital solutions">Automation and digital solutions</option>
+            </select>
+          </label>
+          <label>Lead target (1–100)<input name="targetCount" type="number" min="1" max="100" value="10" required /></label>
+          <fieldset>
+            <legend>Lead sources</legend>
+            <label class="checkbox"><input type="checkbox" name="csvImport" checked /> CSV / manual import <small>Available in MVP</small></label>
+            <label class="checkbox"><input type="checkbox" name="businessWebsites" /> Business websites <small>Permitted access only</small></label>
+            <label class="checkbox"><input type="checkbox" name="metaAdLibrary" /> Meta Ad Library <small>Assisted only</small></label>
+            <label class="checkbox"><input type="checkbox" name="instagram" /> Instagram discovery <small>Assisted only</small></label>
+          </fieldset>
+          <label class="checkbox demo"><input type="checkbox" name="demoExists" /> A custom demo has already been created for these prospects</label>
+          <p id="form-error" class="error" role="alert" aria-live="polite"></p>
+          <button class="primary" type="submit">Create campaign</button>
+        </form>
+        <section class="campaign-section">
+          <div class="section-heading"><div><p class="eyebrow">WORKSPACE</p><h2>Current campaign</h2></div><span id="status" class="status">No campaign</span></div>
+          <div class="metrics">
+            <div><strong id="metric-leads">0</strong><span>Leads</span></div>
+            <div><strong id="metric-drafts">0</strong><span>Drafts ready</span></div>
+            <div><strong id="metric-contacted">0</strong><span>Manually sent</span></div>
+          </div>
+          <p id="campaign-name" class="empty-state">Create a campaign to begin. Lead discovery adapters are not enabled in this foundation build.</p>
+          <div class="controls">
+            <button type="button" id="pause" class="secondary" disabled>Pause</button>
+            <button type="button" id="resume" class="secondary" disabled>Resume</button>
+            <button type="button" id="stop" class="danger" disabled>Stop</button>
+          </div>
+        </section>
+      </main>
+      <footer>Phase 1 foundation · Local development scaffold</footer>
+    </div>
+    <script type="module" src="./sidepanel.ts"></script>
+  </body>
+</html>
