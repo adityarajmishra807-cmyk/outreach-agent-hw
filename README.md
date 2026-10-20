@@ -4,32 +4,55 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 
 ## Product boundaries
 
-- Discover and merge up to 100 business leads per campaign from permitted sources.
-- Research business-relevant information and retain evidence for personalization.
-- Generate individualized outreach drafts using the Gemini API; free-tier quotas and data-use terms apply.
-- Persist leads, drafts, and progress so interrupted work can resume.
-- Use a Chrome Manifest V3 extension for user-controlled browser workflows.
-- The agent must **never send Instagram messages automatically**. The user reviews and sends each message manually.
+- Campaign target: up to 100 leads.
+- Build one deduplicated prospect queue from permitted/user-assisted sources.
+- Generate evidence-backed personalized drafts using Gemini from the server-side backend.
+- Persist campaign, lead, and draft state and resume after interruptions.
+- The agent must **never send Instagram messages automatically**.
 - No Meta API integration is planned for the MVP.
-- Browser-based discovery and data collection must be validated against the relevant sites' terms and access restrictions. Do not bypass access controls or anti-abuse measures.
+- Unreviewed browser/source automation is disabled. Do not bypass access controls, CAPTCHAs, login challenges, or anti-abuse measures.
 
-## Intended architecture
+## Architecture
 
-- `extension/`: Chrome Manifest V3 UI, task coordinator, and approved browser-side interactions.
+- `extension/`: Chrome Manifest V3 side panel and extension worker.
 - `web/`: Next.js dashboard and Vercel API routes.
-- Supabase: persistent campaign, lead, evidence, draft, and activity storage.
-- Gemini API: server-side research summarization and draft generation.
+- `packages/shared/`: campaign/lead models, validation, and state transitions.
+- `supabase/migrations/`: initial schema and Row Level Security policies.
+- `tests/`: domain and safety tests.
+- Gemini API: server-side only.
 
-## Project status
+## Development
+
+Requires Node.js 22+ and npm.
+
+```sh
+npm install
+npm run test
+npm run typecheck
+npm run build
+```
+
+To load the extension: after building, open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and select `extension/dist`.
+
+Run the web dashboard locally:
+
+```sh
+npm run dev:web
+```
+
+The web health endpoint is `/api/health`.
+
+## Current status
 
 - [Product Requirements Document](docs/PRD.md)
 - [Phase 0 repository and architecture review](docs/PHASE-0-REVIEW.md)
-- [Source access matrix and MVP fallbacks](docs/SOURCE-ACCESS-MATRIX.md)
+- [Source access matrix](docs/SOURCE-ACCESS-MATRIX.md)
+- [Extension setup](extension/README.md)
 
-**Phase 0 is complete with source-automation gates.** This repository currently contains documentation and configuration examples; the application scaffold and tests have not yet been implemented.
+**Phase 1 scaffold is in progress on the `phase-1-foundation` branch.** The current extension can create and persist local campaign records and control campaign status. Lead discovery, Supabase runtime integration, and Gemini drafting are not connected yet.
 
-Automated extraction from Meta/Instagram is disabled by default pending review of the exact method and required permissions. Google Maps scraping is out of scope. The MVP fallback is user-assisted/imported lead data plus permitted business-website research.
+The extension intentionally declares no website host permissions and has no content scripts at this stage. Meta/Instagram automation stays gated. Google Maps scraping is out of scope.
 
-## Security
+## Environment and security
 
-Keep Gemini and Supabase service credentials in server-side environment variables. Never place private API keys in extension assets or client-side code. Configure Supabase Row Level Security before storing production data.
+Use `.env.example` as the variable-name reference. Keep Gemini and Supabase service credentials only in server-side environment variables. Never commit real keys or ship a privileged key in the extension/client bundle. Review Supabase RLS before applying migrations to a deployed project.
