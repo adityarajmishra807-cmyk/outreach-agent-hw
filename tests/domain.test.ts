@@ -92,6 +92,18 @@ describe("queue tasks", () => {
     expect(reconciled[0].lastError).toMatch(/Interrupted while processing/);
   });
 
+  it("caps processing at three total attempts", () => {
+    let task = enqueueQueueTask([], firstInput, 10).task;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      task = transitionQueueTask(task, "processing");
+      task = transitionQueueTask(task, "failed", { error: "temporary failure" });
+      if (attempt < 2) task = transitionQueueTask(task, "pending");
+    }
+    expect(task.attempts).toBe(3);
+    const pendingForForbiddenRetry = transitionQueueTask(task, "pending");
+    expect(() => transitionQueueTask(pendingForForbiddenRetry, "processing")).toThrow(/retry budget exhausted/i);
+  });
+
   it("counts only tasks belonging to the selected campaign", () => {
     const one = enqueueQueueTask([], firstInput, 10);
     const two = enqueueQueueTask(one.tasks, { id: "task-2", campaignId: "campaign-2", leadId: "lead-2" }, 10);
