@@ -34,6 +34,15 @@ type ExtensionMessage =
 
 const EMPTY_STATE: ExtensionState = { campaigns: [], activeCampaignId: null, queueTasks: [] };
 
+// Serialize state-changing messages so concurrent popup/side-panel requests do not overwrite each other.
+let stateMutationTail: Promise<void> = Promise.resolve();
+
+function serializeStateMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const result = stateMutationTail.then(operation, operation);
+  stateMutationTail = result.then(() => undefined, () => undefined);
+  return result;
+}
+
 async function loadState(): Promise<ExtensionState> {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   const raw = stored[STORAGE_KEY] as Partial<ExtensionState> | undefined;
@@ -168,17 +177,17 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         await ensureRecovered();
         return { ok: true, state: await loadState() };
       case "CREATE_CAMPAIGN":
-        return { ok: true, state: await createCampaign(message.config) };
+        return { ok: true, state: await serializeStateMutation(() => createCampaign(message.config)) };
       case "PAUSE_CAMPAIGN":
-        return { ok: true, state: await transitionActiveCampaign(message.campaignId, "paused") };
+        return { ok: true, state: await serializeStateMutation(() => transitionActiveCampaign(message.campaignId, "paused")) };
       case "RESUME_CAMPAIGN":
-        return { ok: true, state: await transitionActiveCampaign(message.campaignId, "running") };
+        return { ok: true, state: await serializeStateMutation(() => transitionActiveCampaign(message.campaignId, "running")) };
       case "STOP_CAMPAIGN":
-        return { ok: true, state: await transitionActiveCampaign(message.campaignId, "cancelled") };
+        return { ok: true, state: await serializeStateMutation(() => transitionActiveCampaign(message.campaignId, "cancelled")) };
       case "ENQUEUE_TASK":
-        return { ok: true, state: await enqueueTask(message) };
+        return { ok: true, state: await serializeStateMutation(() => enqueueTask(message)) };
       case "TRANSITION_TASK":
-        return { ok: true, state: await updateTask(message) };
+        return { ok: true, state: await serializeStateMutation(() => updateTask(message)) };
       case "GET_QUEUE_COUNTS": {
         await ensureRecovered();
         const state = await loadState();
