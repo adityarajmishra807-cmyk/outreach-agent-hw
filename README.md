@@ -30,9 +30,9 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 - [Phase 1 foundation progress and manual QA instructions](docs/PHASE-1-FOUNDATION.md)
 - [Chrome extension instructions](extension/README.md)
 
-The foundation scaffold and queue domain logic are implemented on `main`. CI has passed tests, type checking, and builds on the implementation commits reviewed. The latest workflow also uploads a loadable extension artifact; check [GitHub Actions](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions) for its final result.
+The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, and the user confirmed the extension loads and campaign controls work in Chrome. See [Phase 1 verification](docs/PHASE-1-FOUNDATION.md) and the [successful CI run](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39463541084).
 
-**Phase 1 status:** Latest CI passed. The one remaining acceptance step is a manual Chrome smoke test using the packaged extension. CSV ingestion, runtime Supabase integration, Gemini drafting, and source integrations belong to later phases. A committed npm lockfile is recommended hardening, not a functional blocker.
+**Current milestone: Phase 2 planning.** The next deliverable is CSV lead ingestion, row validation, normalized identity matching, deduplication that preserves source evidence, and a visible campaign lead queue. See [Phase 2 plan](docs/PHASE-2-PLAN.md).
 
 ## Development
 
@@ -55,4 +55,4 @@ Use `.env.example` as a list of future environment variables. Keep Gemini and Su
 
 ## Branching
 
-The requested workflow is direct commits to `main`; do not create or develop on feature branches. A redundant legacy `phase-1-foundation` branch still needs deletion authorization/cleanup.
+The requested workflow is direct commits to `main`; do not create or develop on feature branches. Only `main` is intended for development; the stale `phase-1-foundation` branch has been deleted and verified.
