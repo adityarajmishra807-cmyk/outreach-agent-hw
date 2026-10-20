@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, phase-1-foundation]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Run domain and policy tests
+        run: npm test
+      - name: Type-check workspaces
+        run: npm run typecheck
+      - name: Build extension and dashboard
+        run: npm run build
