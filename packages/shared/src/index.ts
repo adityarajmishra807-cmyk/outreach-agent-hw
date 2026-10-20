@@ -97,7 +97,7 @@ export function canTransitionCampaign(from: CampaignStatus, to: CampaignStatus):
 export function transitionCampaign<T extends { status: CampaignStatus }>(
   campaign: T,
   nextStatus: CampaignStatus
-): T {
+): Omit<T, "status"> & { status: CampaignStatus } {
   if (!canTransitionCampaign(campaign.status, nextStatus)) {
     throw new Error(`Invalid campaign transition: ${campaign.status} -> ${nextStatus}`);
   }
