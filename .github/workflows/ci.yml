@@ -27,3 +27,10 @@ jobs:
         run: npm run typecheck
       - name: Build extension and dashboard
         run: npm run build
+      - name: Upload unpacked Chrome extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: horizon-agent-chrome-extension
+          path: extension/dist/
+          if-no-files-found: error
+          retention-days: 7
