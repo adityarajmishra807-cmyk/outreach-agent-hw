@@ -1,8 +1,8 @@
 # Phase 1 — Foundation Progress
 
 **Branch policy:** All implementation commits are made directly on `main`.  
-**Status:** Foundation scaffold implemented; Phase 1 remains pending live Chrome QA.  
-**Latest CI workflow:** https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions
+**Status:** Foundation scaffold implemented; Phase 1 remains pending live Chrome QA and dependency lockfile.  
+**Latest successful CI run:** https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39460918812
 
 ## Implemented on main
 
@@ -21,7 +21,7 @@
 
 ## Verification
 
-The CI runs for the queue model, queue worker, TypeScript types, and project configuration have passed for the commits checked during this implementation. The latest workflow including the artifact-upload step must finish before calling that exact revision verified. Check the Actions page above for the latest result.
+The latest successful CI run passed dependency installation, domain/safety tests, TypeScript checks, extension/dashboard builds, and the extension-artifact upload. The [built Chrome extension ZIP](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39460918812) is available from that run's Artifacts section. Newer changes must pass CI before they are treated as verified.
 
 The CI builds are not a substitute for manually loading the extension in Chrome. We cannot truthfully mark live Chrome QA complete until the built artifact is opened in a real browser and its controls are exercised.
 
@@ -54,7 +54,7 @@ These are planned for later phases and are not blockers for the foundation scaff
 - [x] Queue data model, idempotent enqueue, state transitions, recovery policy, and cancellation policy implemented.
 - [x] Tests for shared state and no-send baseline added.
 - [x] CI reports successful test/typecheck/build on the implementation revisions checked.
-- [ ] Latest CI, including extension artifact upload, passes.
+- [x] CI, including extension artifact upload, passed for commit `0ca8c05`.
 - [ ] Extension is loaded and manually verified in Chrome.
 - [ ] Lockfile committed for reproducible installs.
 
