@@ -242,3 +242,20 @@ export function countQueueTasks(tasks: QueueTask[], campaignId: string): Record<
   for (const task of tasks) if (task.campaignId === campaignId) counts[task.status] += 1;
   return counts;
 }
+
+
+export function cancelPendingQueueTasks(tasks: QueueTask[], campaignId: string, now = new Date().toISOString()): QueueTask[] {
+  return tasks.map((task) => {
+    if (task.campaignId !== campaignId) return task;
+    if (task.status === "pending") {
+      return transitionQueueTask(task, "skipped", { error: "Campaign cancelled by user.", now });
+    }
+    if (task.status === "processing") {
+      return transitionQueueTask(task, "needs_review", {
+        error: "Campaign cancelled while task was processing; verify state before retrying.",
+        now
+      });
+    }
+    return task;
+  });
+}
