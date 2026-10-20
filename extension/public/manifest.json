@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Horizon Works Outreach Agent",
+  "version": "0.1.0",
+  "description": "Research leads and prepare personalized outreach drafts for manual review.",
+  "minimum_chrome_version": "114",
+  "permissions": ["storage", "sidePanel"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open Horizon Works Agent"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
