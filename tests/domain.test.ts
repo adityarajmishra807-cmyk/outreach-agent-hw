@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canTransitionCampaign,
   canTransitionQueueTask,
+  cancelPendingQueueTasks,
   countQueueTasks,
   enqueueQueueTask,
   normalizeBusinessName,
@@ -96,6 +97,19 @@ describe("queue tasks", () => {
     const two = enqueueQueueTask(one.tasks, { id: "task-2", campaignId: "campaign-2", leadId: "lead-2" }, 10);
     expect(countQueueTasks(two.tasks, "campaign-1").pending).toBe(1);
     expect(countQueueTasks(two.tasks, "campaign-2").pending).toBe(1);
+  });
+
+  it("skips pending work and sends processing work to review on cancellation", () => {
+    const pending = enqueueQueueTask([], firstInput, 10).task;
+    const processing = transitionQueueTask(
+      enqueueQueueTask([], { id: "task-2", campaignId: "campaign-1", leadId: "lead-2" }, 10).task,
+      "processing"
+    );
+    const otherCampaign = enqueueQueueTask([], { id: "task-3", campaignId: "campaign-2", leadId: "lead-3" }, 10).task;
+    const result = cancelPendingQueueTasks([pending, processing, otherCampaign], "campaign-1", "2026-10-20T12:03:00.000Z");
+    expect(result[0].status).toBe("skipped");
+    expect(result[1].status).toBe("needs_review");
+    expect(result[2].status).toBe("pending");
   });
 });
 
