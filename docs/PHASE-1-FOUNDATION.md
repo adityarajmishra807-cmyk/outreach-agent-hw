@@ -1,7 +1,7 @@
 # Phase 1 — Foundation Progress
 
 **Branch policy:** All implementation commits are made directly on `main`.  
-**Status:** Foundation scaffold implemented; Phase 1 remains pending live Chrome QA and dependency lockfile.  
+**Status:** Foundation scaffold implemented; Phase 1 remains pending live Chrome QA.  
 **Latest successful CI run:** https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39460918812
 
 ## Implemented on main
@@ -35,7 +35,7 @@ These are planned for later phases and are not blockers for the foundation scaff
 - Google Maps scraping (out of scope).
 - Instagram profile navigation or content extraction (Phase 3 and only after the access method is reviewed).
 - Vercel project configuration/deployment.
-- A committed npm lockfile; current CI uses npm install. Generate and commit the lockfile in a network-enabled development environment to pin dependency resolution.
+- A committed npm lockfile; current CI uses npm install. This is recommended hardening for reproducibility, but is not a functional requirement in the PRD.
 - Live Chrome installation QA.
 
 ## How to test the extension locally
@@ -56,9 +56,9 @@ These are planned for later phases and are not blockers for the foundation scaff
 - [x] CI reports successful test/typecheck/build on the implementation revisions checked.
 - [x] CI, including extension artifact upload, passed for commit `0ca8c05`.
 - [ ] Extension is loaded and manually verified in Chrome.
-- [ ] Lockfile committed for reproducible installs.
+- [ ] Live Chrome smoke test completed.
 
-**Disposition:** Foundation code is implemented and CI-tested, but Phase 1 is not declared fully complete until the latest CI artifact build passes and Chrome smoke testing is performed. The absence of live Chrome access is an explicit QA dependency, not a claim of successful manual testing.
+**Disposition:** Foundation code and CI are complete; Phase 1 is waiting only for the manual Chrome smoke test. A lockfile is recommended follow-up hardening. The absence of live Chrome access is an explicit QA dependency, not a claim of successful manual testing.
 
 ## Non-negotiable guardrails
 
