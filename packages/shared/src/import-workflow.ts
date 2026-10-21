@@ -350,7 +350,33 @@ export function prepareCsvImport(
   const rows: ImportPreviewRow[] = [];
   const exportExceptions: ImportExceptionExportRow[] = [];
 
+  let disabledSourceCount = 0;
   for (const row of parsed.rows) {
+    if (!sourceTypeEnabledForCsv(campaign, row.sourceType)) {
+      disabledSourceCount += 1;
+      const reason = `Row ${row.rowNumber} was not imported because source type "${row.sourceType}" is disabled for this campaign.`;
+      issues.push({
+        code: "source_not_enabled",
+        message: reason,
+        severity: "error",
+        rowNumber: row.rowNumber,
+        field: "sourceType"
+      });
+      exportExceptions.push({
+        rowNumber: row.rowNumber,
+        rawFields: row.rawFields,
+        status: "rejected",
+        reason
+      });
+      rows.push({
+        rowNumber: row.rowNumber,
+        businessName: row.businessName,
+        action: "rejected",
+        reason,
+        reviewFlags: row.reviewFlags
+      });
+      continue;
+    }
     const beforeCount = countCampaignLeads(workingLeads, campaignId);
     const attempt = deduplicateImportedLeads([row], workingLeads, {
       campaignId,
@@ -437,8 +463,8 @@ export function prepareCsvImport(
       fileName: safeFileName,
       canCommit: createdCount + mergedCount + duplicateCount + needsReviewCount > 0,
       totalRows: parsed.totalRows,
-      acceptedRows: parsed.acceptedCount,
-      rejectedRows: parsed.rejectedCount,
+      acceptedRows: Math.max(0, parsed.acceptedCount - disabledSourceCount),
+      rejectedRows: parsed.rejectedCount + disabledSourceCount,
       warningCount: issues.filter((issue) => issue.severity === "warning").length,
       createdCount,
       mergedCount,
