@@ -35,8 +35,6 @@ const chrome = {
   sidePanel: { async setPanelBehavior() { return {}; } }
 };
 
-let workerStartCount = 0;
-
 // The MV3 manifest declares a module service worker. Execute the emitted ESM
 // module graph in a fresh VM context per start, resolving only local packaged chunks.
 // This validates module entrypoints without relying on a live Chrome installation.
@@ -367,7 +365,7 @@ const processing = success(await send({
   nextStatus: "processing"
 }), "Mark task processing");
 assert.equal(processing.state.queueTasks.find((task) => task.id === "harness-task-1").attempts, 1);
-startWorker();
+await startWorker();
 const recovered = success(await send({ type: "GET_STATE" }), "Get state after worker restart").state;
 assert.equal(recovered.queueTasks.find((task) => task.id === "harness-task-1").status, "needs_review");
 assert.equal(recovered.researchNotes.length, 1);
