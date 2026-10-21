@@ -245,7 +245,7 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
     }
     if (lead.candidateIds?.length) {
       const candidates = lead.candidateIds.map((id) =>
-        state.leads.find((candidate) => candidate.id === id)?.businessName ?? id
+        latestState?.leads.find((candidate) => candidate.id === id)?.businessName ?? id
       );
       const candidateText = document.createElement("small");
       candidateText.className = "lead-review-flags";
