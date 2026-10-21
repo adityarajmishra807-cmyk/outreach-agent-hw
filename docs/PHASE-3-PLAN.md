@@ -59,7 +59,6 @@ Make campaign source settings meaningful and give the operator a consistent work
 - [x] Run the compiled module-worker harness against the built MV3 worker and its packaged local chunks.
 - [x] CI passed at [run 39669685690](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39669685690): 72 tests across 7 test files, type checks, extension/dashboard builds, module/resource verification, and worker runtime checks.
 - [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
-- [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
 
 ## Explicitly not enabled
 
@@ -67,7 +66,7 @@ Make campaign source settings meaningful and give the operator a consistent work
 - Instagram profile scanning/extraction, hidden endpoints, login challenges, or access-control circumvention.
 - Google Maps scraping or bulk collection.
 - Unreviewed website fetching, crawling, or robots/terms bypass.
-- Gemini draft generation or Supabase cloud persistence.
+- Public Gemini draft generation is disabled by default until server environment and protected-access requirements are satisfied; Supabase cloud persistence is not connected.
 - Automated Instagram messaging, automated follow-ups, auto-following, or programmatic send/submit actions.
 
 ## Design constraints
@@ -80,4 +79,4 @@ Make campaign source settings meaningful and give the operator a consistent work
 
 ## Next slice after this one
 
-The next major phase is **server-side Gemini draft generation** using the evidence bundle as input. The backend should generate a draft only from supplied evidence, validate the output schema, keep observations separate from hypotheses, and fall back to neutral wording when evidence is missing. Configure API credentials server-side only; handle quota/model errors without losing leads or research notes. Keep draft editing/copying user-controlled. Do not introduce automated Instagram sending. Supabase runtime persistence/authentication can be integrated after draft workflow and data ownership are reviewed.
+Phase 4 implements the first server-side Gemini drafting slice. See [Phase 4 plan](PHASE-4-PLAN.md) for its feature gates, security requirements, and remaining real-browser acceptance. This does not change the Phase 3 manual-source-only boundary.
