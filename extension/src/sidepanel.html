@@ -49,6 +49,33 @@
           <p id="form-error" class="error" role="alert" aria-live="polite"></p>
           <button class="primary" type="submit">Create campaign</button>
         </form>
+        <section class="campaign-section import-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PHASE 2 · CSV IMPORT</p><h2>Import leads</h2></div>
+            <span class="limit">CSV ONLY</span>
+          </div>
+          <label>Choose a CSV file
+            <input id="csv-file" type="file" accept=".csv,text/csv" disabled />
+          </label>
+          <p class="import-help">Required column: businessName (or business_name, business, name). Optional columns include location, website, instagramUsername, instagramUrl, sourceUrl, sourceType, and notes. Maximum 2 MB and 5,000 data rows.</p>
+          <p id="csv-file-status" class="import-file-status">Create or select a campaign before importing.</p>
+          <div class="import-actions">
+            <button type="button" id="preview-csv" class="secondary" disabled>Preview CSV</button>
+            <button type="button" id="confirm-csv" class="primary" disabled hidden>Import accepted rows</button>
+          </div>
+          <p id="import-error" class="error" role="alert" aria-live="polite"></p>
+          <div id="import-preview" class="import-preview" aria-live="polite" hidden>
+            <div id="import-summary" class="import-summary"></div>
+            <div class="import-preview-block">
+              <strong>Row-by-row preview</strong>
+              <div id="import-row-list" class="import-row-list"></div>
+            </div>
+            <div class="import-preview-block">
+              <strong>Validation and review notes</strong>
+              <ul id="import-issue-list" class="import-issue-list"></ul>
+            </div>
+          </div>
+        </section>
         <section class="campaign-section">
           <div class="section-heading"><div><p class="eyebrow">WORKSPACE</p><h2>Current campaign</h2></div><span id="status" class="status">No campaign</span></div>
           <div class="metrics">
@@ -62,6 +89,14 @@
             <button type="button" id="resume" class="secondary" disabled>Start / Resume</button>
             <button type="button" id="stop" class="danger" disabled>Stop</button>
           </div>
+        </section>
+        <section class="campaign-section lead-list-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PROSPECTS</p><h2>Campaign lead queue</h2></div>
+            <span id="lead-count-badge" class="status">0 leads</span>
+          </div>
+          <p id="lead-list-empty" class="empty-state">Import a CSV to populate this campaign's lead queue.</p>
+          <div id="lead-list-rows" class="lead-list-rows"></div>
         </section>
       </main>
       <footer>Phase 1 foundation · Local development scaffold</footer>
