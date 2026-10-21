@@ -99,6 +99,17 @@ describe("extension state persistence", () => {
       id: "task-1", campaignId: "campaign-1", leadId: "lead-1", status: "pending",
       attempts: 0, createdAt: "2026-10-22T00:00:00.000Z", updatedAt: "2026-10-22T00:00:00.000Z"
     }];
+    state.sourceEvents = [{
+      id: "source-event-1",
+      campaignId: "campaign-1",
+      occurredAt: "2026-10-22T00:30:00.000Z",
+      sourceType: "business_website",
+      businessName: "North Gym",
+      sourceUrl: "https://north.example",
+      action: "created",
+      leadId: "lead-1",
+      reviewFlags: []
+    }];
     const committed = buildCsvImportCommit(state, "campaign-1", "leads.csv", sampleCsv, {
       now: "2026-10-22T01:00:00.000Z",
       createId: idFactory("new")
@@ -114,6 +125,8 @@ describe("extension state persistence", () => {
     expect(restored.queueTasks).toHaveLength(1);
     expect(restored.leads).toHaveLength(2);
     expect(restored.imports).toHaveLength(1);
+    expect(restored.sourceEvents).toHaveLength(1);
+    expect(restored.sourceEvents[0].sourceUrl).toBe("https://north.example");
   });
 
   it("keeps the previously saved state when the storage write fails", async () => {
