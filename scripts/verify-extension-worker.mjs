@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import vm from "node:vm";
 import crypto from "node:crypto";
 
@@ -34,9 +35,12 @@ const chrome = {
   sidePanel: { async setPanelBehavior() { return {}; } }
 };
 
-const workerSource = readFileSync(workerPath, "utf8");
+let workerStartCount = 0;
 
-function startWorker() {
+// The MV3 manifest declares a module service worker. Execute the emitted ESM
+// module graph in a fresh VM context per start, resolving only local packaged chunks.
+// This validates module entrypoints without relying on a live Chrome installation.
+async function startWorker() {
   const context = vm.createContext({
     chrome,
     crypto,
@@ -44,9 +48,46 @@ function startWorker() {
     TextEncoder,
     console,
     setTimeout,
-    clearTimeout
+    clearTimeout,
+    structuredClone
   });
-  vm.runInContext(workerSource, context, { filename: workerPath });
+  const moduleCache = new Map();
+
+  function moduleFor(filePath) {
+    const absolutePath = resolve(filePath);
+    const relativePath = relative(resolve(process.cwd(), "extension/dist"), absolutePath);
+    assert.ok(
+      relativePath && relativePath !== ".." && !relativePath.startsWith(".." + sep),
+      "Worker imported a module outside extension/dist: " + absolutePath
+    );
+    assert.ok(absolutePath.endsWith(".js"), "Unexpected imported worker module: " + absolutePath);
+    if (moduleCache.has(absolutePath)) return moduleCache.get(absolutePath);
+
+    const source = readFileSync(absolutePath, "utf8");
+    const mod = new vm.SourceTextModule(source, {
+      context,
+      identifier: pathToFileURL(absolutePath).href,
+      initializeImportMeta(meta) {
+        meta.url = pathToFileURL(absolutePath).href;
+      }
+    });
+    moduleCache.set(absolutePath, mod);
+    return mod;
+  }
+
+  const entry = moduleFor(workerPath);
+  await entry.link(async (specifier, referencingModule) => {
+    const referencingPath = fileURLToPath(referencingModule.identifier);
+    let importedUrl;
+    try {
+      importedUrl = new URL(specifier, pathToFileURL(referencingPath));
+    } catch {
+      throw new Error("Invalid worker module import: " + specifier);
+    }
+    assert.equal(importedUrl.protocol, "file:", "Worker may only import packaged local modules.");
+    return moduleFor(fileURLToPath(importedUrl));
+  });
+  await entry.evaluate();
   WorkerError = vm.runInContext("Error", context);
   assert.equal(typeof onMessageListener, "function", "Worker message listener was not registered.");
   assert.equal(typeof onInstalledListener, "function", "Worker install listener was not registered.");
@@ -100,7 +141,7 @@ const csv = [
   "Other Gym,Dehradun,https://other.example,othergym,,"
 ].join("\n");
 
-startWorker();
+await startWorker();
 
 // Concurrent state mutations should not overwrite one another.
 const [createdA, createdB] = await Promise.all([
