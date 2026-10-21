@@ -134,6 +134,57 @@
           <p id="lead-list-empty" class="empty-state">Import a CSV or add a researched lead to populate this campaign's lead queue.</p>
           <div id="lead-list-rows" class="lead-list-rows"></div>
         </section>
+        <section class="campaign-section research-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PHASE 3 · RESEARCH</p><h2>Record an observation</h2></div>
+            <span class="limit">EVIDENCE FIRST</span>
+          </div>
+          <p class="import-help">Record something you personally observed about the business, with a URL that supports it. Keep hypotheses separate from facts. This tool does not open or inspect the URL for you.</p>
+          <form id="research-note-form">
+            <label>Campaign lead
+              <select id="research-lead-id" name="leadId" required disabled>
+                <option value="">Add or import a lead first</option>
+              </select>
+            </label>
+            <label>Observation category
+              <select name="category" required>
+                <option value="services_offered">Services offered</option>
+                <option value="website_experience">Website experience</option>
+                <option value="contact_path">Contact / enquiry path</option>
+                <option value="booking_or_purchase">Booking or purchase flow</option>
+                <option value="public_content">Public content</option>
+                <option value="other">Other factual observation</option>
+              </select>
+            </label>
+            <label>What did you actually observe?
+              <textarea name="observation" required minlength="12" maxlength="1200" rows="3" placeholder="The services page lists personal training and small-group coaching."></textarea>
+            </label>
+            <label>Evidence URL
+              <input name="evidenceUrl" type="url" required maxlength="2048" placeholder="https://business.example/services" />
+            </label>
+            <label>Potential opportunity hypothesis (optional)
+              <textarea name="potentialOpportunity" maxlength="600" rows="2" placeholder="A clearer path to enquire about coaching may help visitors take the next step."></textarea>
+            </label>
+            <label>Evidence confidence
+              <select name="confidence" required>
+                <option value="observed">I directly observed this</option>
+                <option value="needs_verification" selected>Needs verification before use</option>
+              </select>
+            </label>
+            <p class="import-help">“Potential opportunity” is a hypothesis, not a verified business problem. Never record a website flaw unless you personally checked it.</p>
+            <p id="research-note-error" class="error" role="alert" aria-live="polite"></p>
+            <p id="research-note-status" class="import-file-status" role="status" aria-live="polite"></p>
+            <button id="research-note-submit" class="primary" type="submit" disabled>Save research note</button>
+          </form>
+        </section>
+        <section class="campaign-section research-history-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">EVIDENCE LOG</p><h2>Recent research notes</h2></div>
+            <span class="limit">LATEST 12</span>
+          </div>
+          <p id="research-notes-empty" class="empty-state">No research notes recorded for this campaign yet.</p>
+          <div id="research-notes-list" class="research-notes-list"></div>
+        </section>
         <section class="campaign-section source-activity-section">
           <div class="section-heading">
             <div><p class="eyebrow">PROVENANCE</p><h2>Recent source activity</h2></div>
