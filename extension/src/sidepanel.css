@@ -68,3 +68,6 @@ textarea:focus{border-color:#159f94;box-shadow:0 0 0 3px #159f9418}
 .research-hypothesis{padding:8px;border-left:3px solid #d9a441;background:#fff9ed;border-radius:0 6px 6px 0;color:#72531e}
 .research-evidence-link{display:block;font-size:9px;line-height:1.45;color:#087b70;text-decoration:underline;overflow-wrap:anywhere;word-break:break-word}
 .research-evidence-link:focus{outline:2px solid #159f94;outline-offset:2px}
+
+.lead-research-status{font-size:9px;line-height:1.45;color:#087b70;overflow-wrap:anywhere}
+.lead-research-status.needs-verification{color:#925d16}
