@@ -24,7 +24,8 @@ Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**,
 - Gate manual entry and CSV rows by the source toggles selected for the campaign.
 - Keep a bounded recent manual source-intake log with source URL, outcome, and review indicators.
 - Record research notes by lead using structured categories, a specific observed fact, a user-supplied evidence URL, confidence, and an optional separately labeled opportunity hypothesis.
-- Deduplicate identical research notes; show note counts in the lead queue and the latest 12 notes in the evidence log.
+- Deduplicate identical research notes; show note counts, covered categories, and evidence-verification state in the lead queue, plus the latest 12 notes in the evidence log.
+- Research status is descriptive evidence coverage only, not an automated lead score or qualification verdict.
 - Validate headers and rows; report rejected records and invalid optional fields.
 - Deduplicate against campaign leads by normalized Instagram handle, website domain, then business name + location.
 - Preserve source evidence on merges, make unchanged imports idempotent, and flag ambiguous/conflicting identities for review.
