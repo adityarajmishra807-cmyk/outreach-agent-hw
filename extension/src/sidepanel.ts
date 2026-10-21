@@ -2,6 +2,7 @@ import "./sidepanel.css";
 import type { Campaign, CampaignConfig, LeadSource, QueueTask } from "@horizon/shared";
 import type { CanonicalImportedLead, ImportDecisionAction } from "@horizon/shared/deduplication";
 import type { ImportIssue } from "@horizon/shared/csv-import";
+import { summarizeLeadResearch } from "@horizon/shared/import-workflow";
 import type {
   AddManualLeadResult,
   AddResearchNoteResult,
@@ -9,8 +10,7 @@ import type {
   ResearchCategory,
   ResearchNote,
   ResearchNoteInput,
-  SourceIntakeEvent,
-  summarizeLeadResearch
+  SourceIntakeEvent
 } from "@horizon/shared/import-workflow";
 
 interface ImportBatch {
