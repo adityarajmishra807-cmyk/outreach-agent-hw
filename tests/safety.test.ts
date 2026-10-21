@@ -34,4 +34,17 @@ describe("extension safety baseline", () => {
     expect(source).not.toMatch(/\.press\s*\(\s*["']Enter["']/i);
     expect(source).not.toMatch(/autoSend|clickSend|submitInstagramDm|sendButton/i);
   });
+
+  it("keeps Phase 3 source intake manual-only without adding network or tab automation", () => {
+    const source = collectSourceFiles(join(extensionRoot, "src"))
+      .map((file) => readFileSync(file, "utf8"))
+      .join("\n");
+    expect(source).not.toMatch(/\bfetch\s*\(/i);
+    expect(source).not.toMatch(/\bXMLHttpRequest\b/);
+    expect(source).not.toMatch(/chrome\.tabs\.(?:create|update|query)\s*\(/i);
+    expect(manifest.host_permissions ?? []).toEqual([]);
+    expect(manifest.content_scripts ?? []).toEqual([]);
+    const panel = readFileSync(join(extensionRoot, "src/sidepanel.html"), "utf8");
+    expect(panel).toContain("This form does not open, fetch, or scrape any source");
+  });
 });
