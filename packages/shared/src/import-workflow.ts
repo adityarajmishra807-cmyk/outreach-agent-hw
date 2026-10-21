@@ -364,7 +364,10 @@ const RESEARCH_CATEGORIES: ResearchCategory[] = [
 const RESEARCH_CONFIDENCE: ResearchConfidence[] = ["observed", "needs_verification"];
 const MAX_RESEARCH_NOTES = 2_000;
 
-function normalizeEvidenceUrl(input: string): string {
+function normalizeEvidenceUrl(input: unknown): string {
+  if (typeof input !== "string") {
+    throw new Error("Enter a valid evidence URL beginning with https:// or http://.");
+  }
   const value = input.trim();
   if (!value || value.length > 2048 || /\s/.test(value)) {
     throw new Error("Enter a valid evidence URL beginning with https:// or http://.");
@@ -383,10 +386,8 @@ function normalizeEvidenceUrl(input: string): string {
 }
 
 function normalizeResearchText(value: unknown, field: string, maxLength: number, required: boolean): string | undefined {
-  if (typeof value !== "string") {
-    if (required) throw new Error(field + " is required.");
-    return undefined;
-  }
+  if (value === undefined && !required) return undefined;
+  if (typeof value !== "string") throw new Error(field + " must be text.");
   const normalized = value.trim();
   if (required && normalized.length < 12) {
     throw new Error(field + " must include a specific, factual description of at least 12 characters.");
