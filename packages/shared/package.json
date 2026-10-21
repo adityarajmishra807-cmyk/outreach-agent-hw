@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./csv-import": {
+      "types": "./src/csv-import.ts",
+      "import": "./src/csv-import.ts"
     }
   }
 }
