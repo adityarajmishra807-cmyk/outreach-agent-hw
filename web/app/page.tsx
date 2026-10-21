@@ -1,7 +1,9 @@
+import DraftStudio from "./draft-studio";
+
 const capabilities = [
-  { title: "Campaign foundation", text: "Create a campaign with a niche, target location, service offer, source choices, and a maximum of 100 leads." },
-  { title: "Persistent workflow", text: "Campaign and lead state will be checkpointed so the queue can resume after interruption." },
-  { title: "Draft-only guarantee", text: "The product will prepare research-backed drafts. The user retains the final Send action." }
+  { title: "Evidence before personalization", text: "Use a research bundle containing the user-recorded facts and source URLs, with uncertain observations clearly separated." },
+  { title: "Server-side Gemini", text: "The Gemini API key remains on the server. Requests require a separate access key and are disabled until explicitly enabled." },
+  { title: "Human-controlled outreach", text: "Generated text stays editable and is not stored or sent. You review, copy, and send manually." }
 ];
 
 export default function HomePage() {
@@ -13,9 +15,9 @@ export default function HomePage() {
       </header>
       <section className="hero">
         <div>
-          <p className="eyebrow">PHASE 1 · FOUNDATION</p>
-          <h2>Find better prospects. Prepare more relevant outreach.</h2>
-          <p>One workspace for lead research, evidence-backed personalization, and manual-first outreach. This dashboard is an initial scaffold; source integrations and AI drafting are not connected yet.</p>
+          <p className="eyebrow">HORIZON WORKS · OUTREACH WORKSPACE</p>
+          <h2>Turn verified research into more relevant outreach.</h2>
+          <p>Prepare evidence in the Chrome extension, paste its research bundle here, and generate an editable draft for human review. The app does not scrape sources or send Instagram messages.</p>
         </div>
         <div className="hero-card">
           <span className="label">Campaign capacity</span>
@@ -23,7 +25,7 @@ export default function HomePage() {
           <span className="note">Maximum per campaign in the MVP</span>
         </div>
       </section>
-      <h2 className="section-title">Product boundaries</h2>
+      <h2 className="section-title">Drafting workflow</h2>
       <section className="grid">
         {capabilities.map((item) => (
           <article className="card" key={item.title}>
@@ -33,7 +35,8 @@ export default function HomePage() {
           </article>
         ))}
       </section>
-      <p className="footer">Foundation scaffold · No Meta API · No automated message sending · Source adapters disabled until approved</p>
+      <DraftStudio />
+      <p className="footer">Local research in Chrome · Server-side Gemini only · Drafts are not saved · No automated Instagram message sending</p>
     </main>
   );
 }
