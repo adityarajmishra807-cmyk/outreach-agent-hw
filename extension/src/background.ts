@@ -266,11 +266,12 @@ function prepareCsvImport(
     const attempt = deduplicateImportedLeads([row], workingLeads, {
       campaignId,
       now: new Date().toISOString(),
-      createId: makeId
+      createId: makeId,
+      maxLeads: campaign.targetCount
     });
-    const afterCount = countCampaignLeads(attempt.leads, campaignId);
+    const decision = attempt.decisions[0];
 
-    if (afterCount > campaign.targetCount && afterCount > beforeCount) {
+    if (decision.action === "over_capacity") {
       overCapacityCount += 1;
       issues.push({
         code: "campaign_capacity_exceeded",
@@ -282,14 +283,13 @@ function prepareCsvImport(
         rowNumber: row.rowNumber,
         businessName: row.businessName,
         action: "over_capacity",
-        reason: `Campaign limit is ${campaign.targetCount} canonical leads.`,
+        reason: decision.reason,
         reviewFlags: row.reviewFlags
       });
       continue;
     }
 
     workingLeads = attempt.leads;
-    const decision = attempt.decisions[0];
     switch (decision.action) {
       case "created":
         createdCount += 1;
@@ -302,6 +302,9 @@ function prepareCsvImport(
         break;
       case "needs_review":
         needsReviewCount += 1;
+        break;
+      case "over_capacity":
+        // Handled above, but kept exhaustive for future decision actions.
         break;
     }
     rows.push({
