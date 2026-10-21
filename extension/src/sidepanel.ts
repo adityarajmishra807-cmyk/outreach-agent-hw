@@ -2,7 +2,7 @@ import "./sidepanel.css";
 import type { Campaign, CampaignConfig, LeadSource, QueueTask } from "@horizon/shared";
 import type { CanonicalImportedLead, ImportDecisionAction } from "@horizon/shared/deduplication";
 import type { ImportIssue } from "@horizon/shared/csv-import";
-import { summarizeLeadResearch } from "@horizon/shared/import-workflow";
+import { buildResearchEvidenceBundle, summarizeLeadResearch } from "@horizon/shared/import-workflow";
 import type {
   AddManualLeadResult,
   AddResearchNoteResult,
@@ -122,6 +122,9 @@ const researchNoteErrorNode = document.querySelector<HTMLElement>("#research-not
 const researchNoteStatusNode = document.querySelector<HTMLElement>("#research-note-status");
 const researchNotesEmptyNode = document.querySelector<HTMLElement>("#research-notes-empty");
 const researchNotesListNode = document.querySelector<HTMLElement>("#research-notes-list");
+const prepareEvidenceBundleButton = document.querySelector<HTMLButtonElement>("#prepare-evidence-bundle");
+const evidenceBundleStatusNode = document.querySelector<HTMLElement>("#evidence-bundle-status");
+const evidenceBundleOutputNode = document.querySelector<HTMLTextAreaElement>("#evidence-bundle-output");
 
 let latestState: ExtensionState | null = null;
 let selectedCsvText: string | null = null;
@@ -218,12 +221,28 @@ function renderResearchLeadOptions(state: ExtensionState, campaign?: Campaign): 
   if (previous && leads.some((lead) => lead.id === previous)) select.value = previous;
 }
 
+function clearEvidenceBundle(): void {
+  if (evidenceBundleOutputNode) {
+    evidenceBundleOutputNode.value = "";
+    evidenceBundleOutputNode.hidden = true;
+  }
+  if (evidenceBundleStatusNode) {
+    evidenceBundleStatusNode.textContent = researchLeadNode?.value
+      ? "The bundle preview was cleared after the campaign state changed. Prepare a fresh snapshot."
+      : "Choose a lead in the research form above.";
+  }
+}
+
 function updateResearchControls(): void {
   const campaign = latestState ? activeCampaign(latestState) : undefined;
   const usableCampaign = Boolean(campaign && ["queued", "running", "paused"].includes(campaign.status));
   const hasLeads = Boolean(campaign && latestState?.leads.some((lead) => lead.campaignId === campaign.id));
+  const hasSelection = Boolean(researchLeadNode?.value && hasLeads);
   if (researchNoteSubmitButton) {
-    researchNoteSubmitButton.disabled = !usableCampaign || !hasLeads || !researchLeadNode?.value;
+    researchNoteSubmitButton.disabled = !usableCampaign || !hasSelection;
+  }
+  if (prepareEvidenceBundleButton) {
+    prepareEvidenceBundleButton.disabled = !usableCampaign || !hasSelection;
   }
 }
 
@@ -490,6 +509,7 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
 
 function render(state: ExtensionState): void {
   latestState = state;
+  clearEvidenceBundle();
   const active = activeCampaign(state);
   const activeLeads = active
     ? state.leads.filter((lead) => lead.campaignId === active.id)
@@ -686,7 +706,30 @@ manualLeadForm?.addEventListener("submit", async (event) => {
 researchLeadNode?.addEventListener("change", () => {
   if (researchNoteErrorNode) researchNoteErrorNode.textContent = "";
   if (researchNoteStatusNode) researchNoteStatusNode.textContent = "";
+  clearEvidenceBundle();
   updateResearchControls();
+});
+
+prepareEvidenceBundleButton?.addEventListener("click", async () => {
+  if (evidenceBundleStatusNode) evidenceBundleStatusNode.textContent = "";
+  try {
+    const state = await getCurrentState();
+    const campaign = activeCampaign(state);
+    if (!campaign) throw new Error("Create a campaign before preparing a research bundle.");
+    const leadId = researchLeadNode?.value;
+    if (!leadId) throw new Error("Choose a lead in the research form above first.");
+    const bundle = buildResearchEvidenceBundle(state, campaign.id, leadId);
+    evidenceBundleOutputNode!.value = bundle.text;
+    evidenceBundleOutputNode!.hidden = false;
+    evidenceBundleStatusNode!.textContent =
+      `Prepared snapshot: ${bundle.sourceCount} source record(s), ${bundle.noteCount} research note(s), ${bundle.directlyObservedCount} directly observed, ${bundle.needsVerificationCount} needing verification, and ${bundle.hypothesisCount} hypothesis/hypotheses. Select the text and copy it manually. This is not an independently verified report.`;
+  } catch (error) {
+    evidenceBundleOutputNode!.value = "";
+    evidenceBundleOutputNode!.hidden = true;
+    evidenceBundleStatusNode!.textContent = error instanceof Error
+      ? error.message
+      : "Could not prepare the research evidence bundle.";
+  }
 });
 
 researchNoteForm?.addEventListener("submit", async (event) => {
