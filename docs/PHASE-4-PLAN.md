@@ -1,7 +1,7 @@
 # Phase 4 — Server-Side Gemini Draft Generation
 
 **Branch:** main only  
-**Status:** First implementation slice committed and CI-verified at [run 39671390662](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39671390662): 84 tests across 8 test files, type checks, both builds, and extension runtime/resource checks passed. A live Gemini API call, private deployment configuration, and real browser acceptance remain unverified.
+**Status:** First implementation slice committed and CI-verified at [run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999): 86 tests across 8 test files, type checks, both builds, and extension runtime/resource checks passed. A live Gemini API call, private deployment configuration, and real browser acceptance remain unverified.
 
 ## Objective
 
@@ -26,8 +26,9 @@ Generate editable, evidence-grounded outreach drafts from the user's research ev
 
 ## Security and release gates still open
 
-- [x] CI passed on the implementation code: 84 tests across 8 test files, type checks, extension/dashboard builds, and extension runtime/resource verification ([run 39671390662](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39671390662)).
-- [ ] Confirm CI passes on the final documentation commit.
+- [x] CI passed on the implementation code: 86 tests across 8 test files, type checks, extension/dashboard builds, and extension runtime/resource verification ([run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999)).
+- [x] CI passed on the latest code commit: 86 tests across 8 test files, type checks, both builds, and extension runtime/resource verification ([run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999)).
+- [ ] Confirm CI passes on this documentation update.
 - [ ] Configure GEMINI_API_KEY, GEMINI_MODEL, DRAFT_STUDIO_ACCESS_KEY, and GEMINI_DRAFTS_ENABLED only in the server environment.
 - [ ] Before enabling this endpoint on a public Vercel deployment, put it behind a real authenticated user/session system and durable edge or shared-store rate limiting. The shared access key and in-memory limiter are a transitional single-operator gate, not multi-user authentication.
 - [ ] Review Gemini free-tier data handling and ensure only business-relevant, non-sensitive evidence is submitted.
