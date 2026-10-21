@@ -1,7 +1,7 @@
 # Phase 3 — Lead Source Workflows
 
 **Branch:** \`main\` only  
-**Status:** P3.1 manual-assisted source intake implemented; automated verification pending  
+**Status:** P3.1 manual-assisted source intake implemented; automated verification passed. Real-Chrome acceptance pending.  
 **Phase 2 status:** Implemented and CI-verified; real-Chrome acceptance remains open.
 
 ## Objective
@@ -33,8 +33,8 @@ Make campaign source settings meaningful and give the operator a consistent work
 ### P3.4 — Regression and validation
 - [x] Add domain tests for manual intake normalization, provenance, repeat idempotency, disabled-source gates, source evidence requirements, campaign capacity, conflicting identity review, invalid optional URLs, terminal campaigns, and legacy-state migration.
 - [x] Add a regression test preventing CSV source-type settings from being bypassed.
-- [ ] Extend the compiled service-worker harness to verify manual lead creation, source evidence, idempotency, and disabled-source rejection.
-- [ ] Confirm latest CI is green after all Phase 3 edits.
+- [x] Extend the compiled service-worker harness to verify manual lead creation, source evidence, idempotency, and disabled-source rejection.
+- [x] CI passed at [run 39665750593](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39665750593), including tests, type checks, extension/dashboard builds, manifest/resource verification, and compiled-worker runtime checks.
 - [ ] Run the side panel in a real Chrome profile when available; browser UI acceptance has not been performed by this environment.
 
 ## Explicitly not enabled
