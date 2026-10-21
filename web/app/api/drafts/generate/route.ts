@@ -7,7 +7,7 @@ import {
   validateDraftGenerationInput,
   validateGeneratedDraft,
   type GeminiGenerateContentResponse
-} from "../../../lib/gemini-draft";
+} from "../../../../lib/gemini-draft";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
