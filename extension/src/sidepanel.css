@@ -34,3 +34,7 @@ input[type=file]{height:auto;min-height:37px;padding:6px;font-size:11px;backgrou
 .lead-status-badge{max-width:105px;text-align:center;font-size:8px;font-weight:800;text-transform:capitalize;color:#536779;background:#edf1f6;border-radius:999px;padding:5px 7px;line-height:1.3}
 .lead-status-badge.needs-review{color:#925d16;background:#fff4dc}
 .lead-review-flags{grid-column:1/-1;font-size:9px;line-height:1.4;color:#99631d;overflow-wrap:anywhere}
+
+.import-export-actions{display:flex;flex-direction:column;gap:7px;align-items:stretch}
+.download-link{display:block;padding:9px 10px;background:#e4f7f2;border:1px solid #bce8dc;border-radius:8px;color:#087b70;text-decoration:none;text-align:center;font-size:11px;font-weight:800;overflow-wrap:anywhere}
+.download-link:hover{text-decoration:underline;background:#d5f2eb}
