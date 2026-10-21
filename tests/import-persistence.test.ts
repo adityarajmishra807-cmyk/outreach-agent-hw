@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Campaign, QueueTask } from "../packages/shared/src/index";
-import { buildCsvImportCommit, createEmptyExtensionState } from "../packages/shared/src/import-workflow";
+import {
+  buildCsvImportCommit,
+  createEmptyExtensionState,
+  exportCsvExceptions
+} from "../packages/shared/src/import-workflow";
 import { createExtensionStateStore, EXTENSION_STATE_STORAGE_KEY, type StorageAreaLike } from "../extension/src/state-store";
 
 function campaign(overrides: Partial<Campaign> = {}): Campaign {
@@ -187,6 +191,30 @@ describe("CSV import commit transaction", () => {
     expect(result.importResult.overCapacityCount).toBe(1);
     expect(result.importResult.finalLeadCount).toBe(2);
     expect(result.state.leads.filter((lead) => lead.campaignId === "campaign-1")).toHaveLength(2);
+  });
+
+  it("exports rejected and over-capacity rows with row numbers and reasons", () => {
+    const initial = createEmptyExtensionState();
+    initial.campaigns = [campaign({ targetCount: 1 })];
+    const csv = [
+      "businessName,location,website",
+      "North Gym,Dehradun,north.example",
+      "Overflow Gym,Dehradun,overflow.example",
+      ",Dehradun,"
+    ].join("\n");
+
+    const exported = exportCsvExceptions(initial, "campaign-1", "campaign leads.csv", csv, {
+      now: "2026-10-22T01:00:00.000Z",
+      createId: idFactory("export")
+    });
+
+    expect(exported.fileName).toBe("campaign_leads-exceptions.csv");
+    expect(exported.exceptionCount).toBe(2);
+    expect(exported.csvText).toContain("_import_status");
+    expect(exported.csvText).toContain("over_capacity");
+    expect(exported.csvText).toContain("rejected");
+    expect(exported.csvText).toContain("Campaign target of 1 leads is full");
+    expect(exported.csvText).toContain("Business name is required.");
   });
 
   it("does not mutate the caller's state if validation fails before commit", () => {
