@@ -3,6 +3,7 @@ import type { Campaign } from "../packages/shared/src/index";
 import {
   addManualLead,
   addResearchNote,
+  buildResearchEvidenceBundle,
   createEmptyExtensionState,
   summarizeLeadResearch,
   normalizeExtensionState
