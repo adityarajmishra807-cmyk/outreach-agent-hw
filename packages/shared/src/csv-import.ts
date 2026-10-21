@@ -324,7 +324,13 @@ export function createImportFingerprint(input: {
   sourceUrl?: string;
   sourceType: LeadSource;
   notes?: string;
+  rowNumber?: number;
 }): string {
+  const hasStableIdentity = Boolean(
+    input.instagramUsername ||
+    input.websiteDomain ||
+    normalizeBusinessName(input.location ?? "")
+  );
   return `lead-import:v1:${JSON.stringify([
     normalizeBusinessName(input.businessName),
     normalizeBusinessName(input.location ?? ""),
@@ -333,7 +339,10 @@ export function createImportFingerprint(input: {
     input.instagramUrl ?? "",
     input.sourceUrl ?? "",
     input.sourceType,
-    input.notes?.trim() ?? ""
+    input.notes?.trim() ?? "",
+    // Name-only rows cannot safely identify a business. Use the CSV row to keep
+    // same-named rows distinct in a file while making unchanged re-imports idempotent.
+    hasStableIdentity ? null : input.rowNumber ?? null
   ])}`;
 }
 
@@ -561,7 +570,8 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
       instagramUrl,
       sourceUrl,
       sourceType,
-      notes
+      notes,
+      rowNumber
     });
     const provenance: LeadSourceProvenance = {
       sourceType,
