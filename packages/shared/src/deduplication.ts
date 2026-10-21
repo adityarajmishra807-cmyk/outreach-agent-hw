@@ -2,7 +2,6 @@ import {
   normalizeBusinessName,
   normalizeInstagramUsername,
   normalizeWebsiteDomain,
-  type LeadSource,
   type LeadStatus
 } from "./index";
 import type { ImportLeadRow, LeadSourceProvenance } from "./csv-import";
@@ -148,8 +147,7 @@ function newCanonicalLead(
   campaignId: string,
   id: string,
   now: string,
-  needsReview = false,
-  candidateIds: string[] = []
+  needsReview = false
 ): CanonicalImportedLead {
   const reviewFlags = unique([
     ...row.reviewFlags,
@@ -274,8 +272,7 @@ export function deduplicateImportedLeads(
         options.campaignId,
         options.createId(),
         now,
-        true,
-        candidates.map((lead) => lead.id)
+        true
       );
       leads.push(reviewLead);
       createdCount += 1;
@@ -308,16 +305,4 @@ export function deduplicateImportedLeads(
   }
 
   return { leads, decisions, createdCount, mergedCount, duplicateCount, needsReviewCount };
-}
-
-/** Source type guard exported for downstream import/persistence code. */
-export function isLeadSource(value: string): value is LeadSource {
-  return [
-    "meta_ad_library_manual",
-    "instagram_manual",
-    "business_website",
-    "google_maps_manual",
-    "csv_import",
-    "other_permitted_source"
-  ].includes(value);
 }
