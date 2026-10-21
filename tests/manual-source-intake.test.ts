@@ -169,7 +169,8 @@ describe("Phase 3 manual source intake", () => {
 
     expect(conflict.action).toBe("needs_review");
     expect(conflict.state.leads).toHaveLength(2);
-    expect(conflict.state.leads[0].candidateIds).toEqual([first.leadId]);
+    expect(conflict.state.leads.find((lead) => lead.status === "duplicate_review")?.candidateIds)
+      .toEqual([first.leadId]);
     expect(conflict.state.sourceEvents[0].candidateIds).toEqual([first.leadId]);
   });
 
