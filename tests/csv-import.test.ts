@@ -189,4 +189,5 @@ describe("CSV lead import contract", () => {
     expect(exported).toContain('"Business name needs review, see notes"');
     expect(exported).toContain("over_capacity,9");
     expect(exported.endsWith("\r\n")).toBe(true);
-  });});
+  });
+});
