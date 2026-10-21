@@ -20,6 +20,9 @@ Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**,
 - Create a campaign with a target of 1–100 leads.
 - Persist campaigns and queue state in `chrome.storage.local` for this Chrome profile.
 - Import a CSV with preview and explicit confirmation.
+- Add one individually researched prospect from a user-reviewed source without automated page access.
+- Gate manual entry and CSV rows by the source toggles selected for the campaign.
+- Keep a bounded recent manual source-intake log with source URL, outcome, and review indicators.
 - Validate headers and rows; report rejected records and invalid optional fields.
 - Deduplicate against campaign leads by normalized Instagram handle, website domain, then business name + location.
 - Preserve source evidence on merges, make unchanged imports idempotent, and flag ambiguous/conflicting identities for review.
@@ -49,7 +52,7 @@ The parser accepts UTF-8/BOM, quoted commas, escaped quotes and embedded newline
 8. Use a campaign with a low target (e.g. 2) and a CSV with more unique records to verify over-capacity rows remain unimported and appear in the exceptions CSV.
 9. Check that warning/rejected rows explain what needs review or correction.
 
-The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. CI verifies the build and runs a mocked-Chrome worker harness, but a real Chrome import/panel-reopen test is still required. Latest CI run: [39663441423](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39663441423). Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
+The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. Phase 3 source entry records use user-supplied information only; the extension does not fetch or scrape the pages. Source-specific toggles are enforced. CI verifies the build, worker API harness, and manual-entry/domain tests, but a real Chrome UI/import/panel-reopen test is still required. Latest CI run before the documentation update: [39665750593](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39665750593). Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
 
 ## Safety boundaries
 
