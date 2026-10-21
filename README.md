@@ -32,7 +32,7 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 
 The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, and the user confirmed the extension loads and campaign controls work in Chrome. See [Phase 1 verification](docs/PHASE-1-FOUNDATION.md) and the [successful CI run](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39463541084).
 
-**Current milestone: Phase 2 — in progress.** The CSV parser, validation preview, canonical lead deduplication, local-storage import commit, and campaign lead queue UI are implemented. CI passed at [run 39658061055](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39658061055). The remaining acceptance step is manual CSV-import testing in Chrome. Data is stored in the current Chrome profile only; Supabase cloud sync is not connected. See [Phase 2 plan and remaining checklist](docs/PHASE-2-PLAN.md).
+**Current milestone: Phase 2 — in progress.** The CSV parser, validation preview, canonical lead deduplication, local-storage import commit, campaign lead queue, and download of rejected/over-capacity rows are implemented. CI passed at [run 39659062762](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39659062762). The remaining acceptance step is manual CSV-import testing in Chrome. Data is stored in the current Chrome profile only; Supabase cloud sync is not connected. See [Phase 2 plan and remaining checklist](docs/PHASE-2-PLAN.md).
 
 ## Development
 
