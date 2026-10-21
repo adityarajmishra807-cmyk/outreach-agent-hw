@@ -206,6 +206,66 @@ describe("Phase 3 evidence-first research notes", () => {
     });
   });
 
+  it("builds an evidence bundle that separates observations, uncertain notes, and hypotheses", () => {
+    const { state, leadId } = seedState();
+    const observed = addResearchNote(state, "campaign-1", validNote(leadId), {
+      now: "2026-10-22T01:00:00.000Z",
+      createId: idFactory("observed")
+    });
+    const uncertain = addResearchNote(observed.state, "campaign-1", validNote(leadId, {
+      category: "contact_path",
+      observation: "The contact page lists a phone number but no enquiry form.",
+      evidenceUrl: "https://north.example/contact",
+      potentialOpportunity: undefined,
+      confidence: "needs_verification"
+    }), {
+      now: "2026-10-22T01:05:00.000Z",
+      createId: idFactory("uncertain")
+    });
+
+    const bundle = buildResearchEvidenceBundle(
+      uncertain.state,
+      "campaign-1",
+      leadId,
+      "2026-10-22T01:10:00.000Z"
+    );
+
+    expect(bundle).toMatchObject({
+      campaignId: "campaign-1",
+      leadId,
+      businessName: "North Gym",
+      generatedAt: "2026-10-22T01:10:00.000Z",
+      sourceCount: 1,
+      noteCount: 2,
+      directlyObservedCount: 1,
+      needsVerificationCount: 1,
+      hypothesisCount: 1
+    });
+    expect(bundle.text).toContain("The extension did not fetch source pages");
+    expect(bundle.text).toContain("Horizon Works service: Website design");
+    expect(bundle.text).toContain("https://north.example/services");
+    expect(bundle.text).toContain("DIRECTLY OBSERVED FACTS");
+    expect(bundle.text).toContain("OBSERVATIONS THAT NEED VERIFICATION");
+    expect(bundle.text).toContain("POTENTIAL OPPORTUNITY HYPOTHESES (NOT VERIFIED BUSINESS PROBLEMS)");
+    expect(bundle.text).toContain("Make the small-group coaching enquiry path easier to find.");
+    expect(bundle.text).toContain("This bundle is a research aid, not a qualification score or outreach draft.");
+    expect(bundle.text).not.toContain("Potential opportunity hypothesis: " + observed.note.observation);
+    expect(bundle.text.split("\n").length).toBeGreaterThan(20);
+  });
+
+  it("rejects bundle requests for an unknown campaign or a lead outside that campaign", () => {
+    const { state, leadId } = seedState();
+    expect(() => buildResearchEvidenceBundle(state, "missing-campaign", leadId))
+      .toThrow("Campaign not found");
+    state.campaigns.push({
+      ...state.campaigns[0],
+      id: "campaign-2",
+      name: "Second campaign"
+    });
+    expect(() => buildResearchEvidenceBundle(state, "campaign-2", leadId))
+      .toThrow("Choose a lead from the selected campaign");
+  });
+
   it("initializes research history when migrating Phase 1/2 saved state", () => {
     const migrated = normalizeExtensionState({
       campaigns: [campaign()],
