@@ -22,6 +22,8 @@ The extension implements user-entered prospect records for individually reviewed
 
 This is a workflow convenience, not approval of an automated collection method. Meta/Instagram extraction remains gated, Google Maps scraping remains out of scope, and website fetching/crawling is not enabled.
 
+The extension also compiles user-supplied source details and research notes into a local, plain-text evidence bundle. It explicitly separates directly observed claims from items marked as needing verification and opportunity hypotheses; it does not fetch or independently verify any source page. It is an input for human review and future server-side drafting, not a qualification score or an outreach draft.
+
 Phase 3 implementation plan: [docs/PHASE-3-PLAN.md](PHASE-3-PLAN.md).
 
 ## Why Meta/Instagram extraction is gated
