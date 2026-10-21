@@ -44,6 +44,7 @@ describe("CSV lead import contract", () => {
     const summary = parseLeadCsv("\uFEFF NAME , WEBSITE_URL \r\n\r\nExample Gym,https://www.example.com/\r\n");
     expect(summary.acceptedCount).toBe(1);
     expect(summary.totalRows).toBe(1);
+    expect(summary.rows[0].rowNumber).toBe(3);
     expect(summary.rows[0].businessName).toBe("Example Gym");
     expect(summary.rows[0].websiteDomain).toBe("example.com");
     expect(summary.issues).toEqual([]);
@@ -63,6 +64,12 @@ describe("CSV lead import contract", () => {
       severity: "error",
       rowNumber: 2
     }));
+  });
+
+  it("reports CSV row positions accurately after blank lines", () => {
+    const summary = parseLeadCsv("businessName,location\n\n,Dehradun\nGym One,Dehradun\n");
+    expect(summary.rejectedRows[0].rowNumber).toBe(3);
+    expect(summary.rows[0].rowNumber).toBe(4);
   });
 
   it("rejects malformed row widths rather than silently shifting fields", () => {
