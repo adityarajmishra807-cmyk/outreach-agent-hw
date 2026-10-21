@@ -148,6 +148,19 @@ export interface LeadResearchSummary {
   readiness: ResearchReadiness;
 }
 
+export interface ResearchEvidenceBundle {
+  campaignId: string;
+  leadId: string;
+  businessName: string;
+  generatedAt: string;
+  text: string;
+  sourceCount: number;
+  noteCount: number;
+  directlyObservedCount: number;
+  needsVerificationCount: number;
+  hypothesisCount: number;
+}
+
 export interface ExtensionState {
   campaigns: Campaign[];
   activeCampaignId: string | null;
@@ -393,6 +406,113 @@ export function summarizeLeadResearch(
     needsVerificationCount,
     categoriesCovered,
     readiness
+  };
+}
+
+const RESEARCH_CATEGORY_LABELS: Record<ResearchCategory, string> = {
+  services_offered: "Services offered",
+  website_experience: "Website experience",
+  contact_path: "Contact / enquiry path",
+  booking_or_purchase: "Booking or purchase flow",
+  public_content: "Public content",
+  other: "Other factual observation"
+};
+
+/** Compiles user-supplied source details into a reviewable bundle; it does not fetch, verify, or score the lead. */
+export function buildResearchEvidenceBundle(
+  state: ExtensionState,
+  campaignId: string,
+  leadId: string,
+  generatedAt = new Date().toISOString()
+): ResearchEvidenceBundle {
+  const campaign = state.campaigns.find((item) => item.id === campaignId);
+  if (!campaign) throw new Error("Campaign not found.");
+  const lead = state.leads.find((item) => item.id === leadId && item.campaignId === campaignId);
+  if (!lead) throw new Error("Choose a lead from the selected campaign.");
+
+  const sources = lead.sourceEvidence ?? [];
+  const notes = (state.researchNotes ?? []).filter((note) =>
+    note.campaignId === campaignId && note.leadId === leadId
+  );
+  const directlyObserved = notes.filter((note) => note.confidence === "observed");
+  const needsVerification = notes.filter((note) => note.confidence === "needs_verification");
+  const hypotheses = notes.filter((note) => Boolean(note.potentialOpportunity?.trim()));
+  const lines: string[] = [
+    "HORIZON WORKS — RESEARCH EVIDENCE BUNDLE",
+    `Prepared locally: ${generatedAt}`,
+    "Trust boundary: this bundle contains user-entered or imported information. The extension did not fetch source pages or independently verify the claims.",
+    "",
+    "CAMPAIGN CONTEXT",
+    `Campaign: ${campaign.name}`,
+    `Niche: ${campaign.niche}`,
+    `Target location: ${campaign.location}`,
+    `Horizon Works service: ${campaign.serviceOffer}`,
+    `Custom demo already exists: ${campaign.demoExists ? "Yes (campaign setting)" : "No (campaign setting)"}`,
+    "",
+    "BUSINESS PROFILE",
+    `Business name: ${lead.businessName}`,
+    `Location: ${lead.location || "Not provided"}`,
+    `Website: ${lead.websiteUrl || "Not provided"}`,
+    `Instagram handle: ${lead.instagramUsername ? "@" + lead.instagramUsername : "Not provided"}`,
+    `Instagram profile URL: ${lead.instagramUrl || "Not provided"}`,
+    `Current lead status: ${lead.status.replaceAll("_", " ")}`,
+    `Identity status: ${lead.identityStatus.replaceAll("_", " ")}`,
+    "",
+    "SOURCE PROVENANCE (URLS RECORDED BY THE USER/IMPORT)",
+    ...(sources.length
+      ? sources.map((source, index) =>
+          `${index + 1}. ${source.sourceType.replaceAll("_", " ")} — ${source.sourceUrl || "No source URL recorded"}`
+        )
+      : ["No source evidence URL is recorded."]),
+    "",
+    "USER-SUPPLIED LEAD NOTES (NOT INDEPENDENTLY VERIFIED)",
+    ...(lead.notes.length ? lead.notes.map((note) => `- ${note}`) : ["No additional lead notes recorded."]),
+    "",
+    "DIRECTLY OBSERVED FACTS (USER-ASSERTED; VERIFY SOURCE BEFORE REUSE)",
+    ...(directlyObserved.length
+      ? directlyObserved.map((note) =>
+          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence URL: ${note.evidenceUrl}`
+        )
+      : ["No notes are marked as directly observed."]),
+    "",
+    "OBSERVATIONS THAT NEED VERIFICATION",
+    ...(needsVerification.length
+      ? needsVerification.map((note) =>
+          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence URL: ${note.evidenceUrl}`
+        )
+      : ["No notes are marked as needing verification."]),
+    "",
+    "POTENTIAL OPPORTUNITY HYPOTHESES (NOT VERIFIED BUSINESS PROBLEMS)",
+    ...(hypotheses.length
+      ? hypotheses.map((note) =>
+          `- ${note.potentialOpportunity}\\n  Related observation: [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence confidence: ${note.confidence.replaceAll("_", " ")}\\n  Evidence URL: ${note.evidenceUrl}`
+        )
+      : ["No opportunity hypotheses have been recorded."]),
+    "",
+    "REVIEW FLAGS",
+    ...(lead.reviewFlags.length
+      ? lead.reviewFlags.map((flag) => `- ${flag.replaceAll("_", " ")}`)
+      : ["No lead review flags are recorded."]),
+    "",
+    "SAFE USE",
+    "- Do not turn a hypothesis into a factual claim.",
+    "- Do not claim a website flaw or business need unless the observation and source support it.",
+    "- If evidence is missing or uncertain, ask a neutral question or review the source before drafting.",
+    "- This bundle is a research aid, not a qualification score or outreach draft."
+  ];
+  const text = lines.join("\\n");
+
+  return {
+    campaignId,
+    leadId,
+    businessName: lead.businessName,
+    generatedAt,
+    text,
+    sourceCount: sources.length,
+    noteCount: notes.length,
+    directlyObservedCount: directlyObserved.length,
+    needsVerificationCount: needsVerification.length,
+    hypothesisCount: hypotheses.length
   };
 }
 
