@@ -31,6 +31,7 @@ interface ImportPreviewRow {
   businessName: string;
   action: ImportDecisionAction | "over_capacity" | "rejected";
   reason?: string;
+  candidateIds?: string[];
   reviewFlags?: string[];
 }
 
@@ -242,6 +243,15 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
       flags.textContent = `Review: ${lead.reviewFlags.map((flag) => flag.replaceAll("_", " ")).join(", ")}`;
       item.append(flags);
     }
+    if (lead.candidateIds?.length) {
+      const candidates = lead.candidateIds.map((id) =>
+        state.leads.find((candidate) => candidate.id === id)?.businessName ?? id
+      );
+      const candidateText = document.createElement("small");
+      candidateText.className = "lead-review-flags";
+      candidateText.textContent = `Potential matches: ${candidates.join(", ")}`;
+      item.append(candidateText);
+    }
     list.append(item);
   }
 }
@@ -285,6 +295,15 @@ function makePreviewRow(row: ImportPreviewRow): HTMLElement {
     const reason = document.createElement("small");
     reason.textContent = row.reason;
     item.append(reason);
+  }
+  if (row.candidateIds?.length) {
+    const candidates = row.candidateIds.map((id) =>
+      latestState?.leads.find((lead) => lead.id === id)?.businessName ?? id
+    );
+    const candidateText = document.createElement("small");
+    candidateText.className = "lead-review-flags";
+    candidateText.textContent = `Potential matches: ${candidates.join(", ")}`;
+    item.append(candidateText);
   }
   if (row.reviewFlags?.length) {
     const flags = document.createElement("small");
