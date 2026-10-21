@@ -128,7 +128,11 @@ function activeCampaign(state: ExtensionState): Campaign | undefined {
 }
 
 function canImportFor(campaign?: Campaign): boolean {
-  return Boolean(campaign && ["queued", "running", "paused"].includes(campaign.status));
+  return Boolean(
+    campaign &&
+    campaign.sourceConfig.csvImport &&
+    ["queued", "running", "paused"].includes(campaign.status)
+  );
 }
 
 function updateImportControls(): void {
@@ -142,9 +146,15 @@ function updateImportControls(): void {
     confirmCsvButton.hidden = !previewBelongsToActiveCampaign || !currentPreview || importCompleted;
   }
   if (csvFileStatusNode && !selectedCsvText) {
-    csvFileStatusNode.textContent = importEnabled
-      ? "Choose a CSV to preview it before importing."
-      : "Create a campaign first. Imports are disabled for completed or cancelled campaigns.";
+    if (!campaign) {
+      csvFileStatusNode.textContent = "Create a campaign first, then choose a CSV.";
+    } else if (!campaign.sourceConfig.csvImport) {
+      csvFileStatusNode.textContent = "CSV / manual import was not enabled in this campaign's source settings.";
+    } else if (!importEnabled) {
+      csvFileStatusNode.textContent = "Imports are disabled for completed, cancelled, or failed campaigns.";
+    } else {
+      csvFileStatusNode.textContent = "Choose a CSV to preview it before importing.";
+    }
   }
 }
 
