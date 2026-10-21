@@ -27,6 +27,8 @@ jobs:
         run: npm run typecheck
       - name: Build extension and dashboard
         run: npm run build
+      - name: Verify built extension manifest and resources
+        run: npm run verify:extension
       - name: Upload unpacked Chrome extension
         uses: actions/upload-artifact@v4
         with:
