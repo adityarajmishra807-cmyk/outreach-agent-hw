@@ -97,8 +97,8 @@ First acceptance implementation may store leads and import metadata in `chrome.s
 ### P2.5 — Regression and user acceptance
 - [x] Add parser/deduplication tests for malformed files, field normalization, provenance retention, repeated imports, campaign cap, conflicts and no-send safety.
 - [x] Keep safety tests that prohibit automated sending and unapproved website/content-script permissions.
-- [x] Latest CI passed at [run 39660969945](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39660969945): all 50 tests passed, TypeScript checks passed, both builds passed, and the unpacked extension artifact uploaded.
-- [ ] Manually verify CSV import, duplicate behavior, row errors, capacity enforcement, and persistence in Chrome before marking Phase 2 complete.
+- [x] Latest CI passed at [run 39663441423](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39663441423): all 50 unit/integration tests passed, TypeScript checks passed, extension/dashboard builds passed, the built manifest/resource-path verifier passed, the compiled-worker Chrome-API harness passed, and the unpacked extension artifact uploaded.
+- [ ] Manually verify CSV import, duplicate behavior, row errors, capacity enforcement, exception download, and panel-reopen persistence in a real Chrome profile before marking Phase 2 complete.
 
 ## Acceptance criteria
 
