@@ -3,7 +3,8 @@ import {
   MAX_CSV_BYTES,
   MAX_CSV_ROWS,
   createImportFingerprint,
-  parseLeadCsv
+  parseLeadCsv,
+  stringifyImportExceptions
 } from "../packages/shared/src/csv-import";
 
 describe("CSV lead import contract", () => {
@@ -164,5 +165,29 @@ describe("CSV lead import contract", () => {
       ...input,
       sourceUrl: "https://example.com/source"
     }));
+  });
+
+  it("exports rejected and over-capacity rows as valid escaped CSV for correction", () => {
+    const exported = stringifyImportExceptions([
+      {
+        rowNumber: 4,
+        rawFields: { businessName: "North, Gym", notes: 'Says "open"\\nnext line' },
+        status: "rejected",
+        reason: "Business name needs review, see notes"
+      },
+      {
+        rowNumber: 9,
+        rawFields: { businessName: "Overflow Gym", notes: "Not imported" },
+        status: "over_capacity",
+        reason: "Campaign limit is full."
+      }
+    ]);
+
+    expect(exported.startsWith("\\uFEFF")).toBe(true);
+    expect(exported).toContain('"North, Gym"');
+    expect(exported).toContain('"Says ""open""\\nnext line"');
+    expect(exported).toContain('"Business name needs review, see notes"');
+    expect(exported).toContain("over_capacity,9");
+    expect(exported.endsWith("\\r\\n")).toBe(true);
   });
 });
