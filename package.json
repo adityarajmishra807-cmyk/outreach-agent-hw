@@ -17,7 +17,7 @@
     "build": "npm run build --workspace @horizon/extension && npm run build --workspace @horizon/web",
     "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p extension/tsconfig.json && npm run typecheck --workspace @horizon/web",
     "test": "vitest run",
-    "verify:extension": "node scripts/verify-extension-build.mjs"
+    "verify:extension": "node scripts/verify-extension-build.mjs && node scripts/verify-extension-worker.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
