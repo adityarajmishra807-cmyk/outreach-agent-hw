@@ -55,7 +55,16 @@ interface ImportPreview {
 }
 
 type WorkerResponse =
-  | { ok: true; state?: ExtensionState; preview?: ImportPreview; importResult?: ImportPreview; counts?: Record<string, number> }
+  | {
+      ok: true;
+      state?: ExtensionState;
+      preview?: ImportPreview;
+      importResult?: ImportPreview;
+      counts?: Record<string, number>;
+      fileName?: string;
+      csvText?: string;
+      exceptionCount?: number;
+    }
   | { ok: false; error: string };
 
 const MAX_CSV_BYTES = 2 * 1024 * 1024;
@@ -73,6 +82,8 @@ const csvFileNode = document.querySelector<HTMLInputElement>("#csv-file");
 const csvFileStatusNode = document.querySelector<HTMLElement>("#csv-file-status");
 const previewCsvButton = document.querySelector<HTMLButtonElement>("#preview-csv");
 const confirmCsvButton = document.querySelector<HTMLButtonElement>("#confirm-csv");
+const prepareExceptionsButton = document.querySelector<HTMLButtonElement>("#prepare-exceptions-csv");
+const downloadExceptionsLink = document.querySelector<HTMLAnchorElement>("#download-exceptions-csv");
 const importErrorNode = document.querySelector<HTMLElement>("#import-error");
 const importPreviewNode = document.querySelector<HTMLElement>("#import-preview");
 const importSummaryNode = document.querySelector<HTMLElement>("#import-summary");
@@ -87,6 +98,7 @@ let selectedCsvText: string | null = null;
 let selectedCsvName = "";
 let currentPreview: ImportPreview | null = null;
 let importCompleted = false;
+let exceptionDownloadUrl: string | null = null;
 
 function requireNode<T extends Element>(value: T | null, selector: string): T {
   if (!value) throw new Error(`Missing required UI element: ${selector}`);
@@ -145,6 +157,11 @@ function updateImportControls(): void {
     confirmCsvButton.disabled = !previewBelongsToActiveCampaign || !currentPreview?.canCommit || importCompleted;
     confirmCsvButton.hidden = !previewBelongsToActiveCampaign || !currentPreview || importCompleted;
   }
+  const hasExceptions = Boolean(currentPreview && (currentPreview.rejectedRows + currentPreview.overCapacityCount > 0));
+  if (prepareExceptionsButton) {
+    prepareExceptionsButton.hidden = !previewBelongsToActiveCampaign || !hasExceptions;
+    prepareExceptionsButton.disabled = !previewBelongsToActiveCampaign || !hasExceptions || !selectedCsvText;
+  }
   if (csvFileStatusNode && !selectedCsvText) {
     if (!campaign) {
       csvFileStatusNode.textContent = "Create a campaign first, then choose a CSV.";
@@ -158,11 +175,23 @@ function updateImportControls(): void {
   }
 }
 
+function clearExceptionDownload(): void {
+  if (exceptionDownloadUrl) URL.revokeObjectURL(exceptionDownloadUrl);
+  exceptionDownloadUrl = null;
+  if (downloadExceptionsLink) {
+    downloadExceptionsLink.hidden = true;
+    downloadExceptionsLink.removeAttribute("href");
+    downloadExceptionsLink.textContent = "Download exceptions CSV";
+  }
+}
+
 function clearImportPreview(): void {
   currentPreview = null;
   importCompleted = false;
+  clearExceptionDownload();
   if (importPreviewNode) importPreviewNode.hidden = true;
   if (confirmCsvButton) confirmCsvButton.hidden = true;
+  if (prepareExceptionsButton) prepareExceptionsButton.hidden = true;
   if (importErrorNode) importErrorNode.textContent = "";
   updateImportControls();
 }
@@ -397,6 +426,7 @@ csvFileNode?.addEventListener("change", async () => {
 
 previewCsvButton?.addEventListener("click", async () => {
   importErrorNode!.textContent = "";
+  clearExceptionDownload();
   try {
     if (!selectedCsvText) throw new Error("Choose a CSV file first.");
     const state = await getCurrentState();
@@ -411,6 +441,43 @@ previewCsvButton?.addEventListener("click", async () => {
     renderImportPreview(response.preview);
   } catch (error) {
     importErrorNode!.textContent = error instanceof Error ? error.message : "Could not preview the CSV.";
+    importErrorNode!.classList.add("error");
+    importErrorNode!.classList.remove("import-success");
+  }
+});
+
+prepareExceptionsButton?.addEventListener("click", async () => {
+  importErrorNode!.textContent = "";
+  clearExceptionDownload();
+  try {
+    if (!selectedCsvText || !currentPreview) throw new Error("Preview a CSV before exporting exception rows.");
+    const state = await getCurrentState();
+    if (!state.activeCampaignId || state.activeCampaignId !== currentPreview.campaignId) {
+      throw new Error("The active campaign changed. Preview the CSV again before exporting exceptions.");
+    }
+    const response = await sendRawMessage({
+      type: "EXPORT_CSV_EXCEPTIONS",
+      campaignId: state.activeCampaignId,
+      fileName: selectedCsvName,
+      csvText: selectedCsvText
+    });
+    if (!response.csvText || !response.fileName || !response.exceptionCount) {
+      throw new Error("There are no rejected or over-capacity rows to export.");
+    }
+
+    const blob = new Blob(["\\uFEFF", response.csvText.replace(/^\\uFEFF/, "")], {
+      type: "text/csv;charset=utf-8"
+    });
+    exceptionDownloadUrl = URL.createObjectURL(blob);
+    downloadExceptionsLink!.href = exceptionDownloadUrl;
+    downloadExceptionsLink!.download = response.fileName;
+    downloadExceptionsLink!.textContent = `Download ${response.exceptionCount} exception row${response.exceptionCount === 1 ? "" : "s"} CSV`;
+    downloadExceptionsLink!.hidden = false;
+    importErrorNode!.textContent = "Exception file prepared. Use the download link below to save it.";
+    importErrorNode!.classList.remove("error");
+    importErrorNode!.classList.add("import-success");
+  } catch (error) {
+    importErrorNode!.textContent = error instanceof Error ? error.message : "Could not prepare the exception CSV.";
     importErrorNode!.classList.add("error");
     importErrorNode!.classList.remove("import-success");
   }
@@ -431,6 +498,7 @@ confirmCsvButton?.addEventListener("click", async () => {
       csvText: selectedCsvText
     });
     if (!response.state || !response.importResult) throw new Error("The worker returned no import result.");
+    clearExceptionDownload();
     render(response.state);
     renderImportPreview(response.importResult, true);
   } catch (error) {
