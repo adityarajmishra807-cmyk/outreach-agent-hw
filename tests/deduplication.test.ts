@@ -191,6 +191,43 @@ describe("campaign lead deduplication", () => {
     expect(second.leads.map((lead) => lead.campaignId).sort()).toEqual(["campaign-1", "campaign-2"]);
   });
 
+  it("enforces the campaign lead cap without blocking merges or exact duplicates", () => {
+    const first = dedupe(
+      "businessName,website,instagramUsername,sourceUrl\nNorth Gym,north.example,northgym,https://directory.example/1"
+    );
+    const incoming = rows([
+      "businessName,website,instagramUsername,sourceUrl",
+      "North Gym,north.example,northgym,https://directory.example/2",
+      "Other Brand,north.example,otherbrand,https://directory.example/3",
+      "Second Gym,second.example,secondgym,https://directory.example/4"
+    ].join("\n"));
+    const result = deduplicateImportedLeads(incoming, first.leads, {
+      campaignId: "campaign-1",
+      now: "2026-10-22T00:05:00.000Z",
+      createId: idFactory(),
+      maxLeads: 1
+    });
+
+    expect(result.mergedCount).toBe(1);
+    expect(result.overCapacityCount).toBe(2);
+    expect(result.createdCount).toBe(0);
+    expect(result.leads.filter((lead) => lead.campaignId === "campaign-1")).toHaveLength(1);
+    expect(result.decisions.map((decision) => decision.action)).toEqual([
+      "merged",
+      "over_capacity",
+      "over_capacity"
+    ]);
+    expect(result.leads[0].sourceEvidence).toHaveLength(2);
+  });
+
+  it("rejects invalid campaign lead-cap configuration", () => {
+    expect(() => deduplicateImportedLeads([], [], {
+      campaignId: "campaign-1",
+      createId: idFactory(),
+      maxLeads: 101
+    })).toThrow("Maximum campaign leads must be an integer between 1 and 100.");
+  });
+
   it("flags a key shared by multiple canonical leads for manual review", () => {
     const first = dedupe("businessName,instagramUsername\nNorth Gym,northgym");
     const duplicatedExisting = [
