@@ -179,6 +179,7 @@ async function transitionActiveCampaign(
     ? cancelPendingQueueTasks(current.queueTasks, campaignId)
     : current.queueTasks;
   const next = {
+    ...current,
     campaigns: current.campaigns.map((campaign) => campaign.id === campaignId ? updated : campaign),
     activeCampaignId: current.activeCampaignId,
     queueTasks
@@ -269,7 +270,7 @@ function prepareCsvImport(
     });
     const afterCount = countCampaignLeads(attempt.leads, campaignId);
 
-    if (afterCount > campaign.targetCount) {
+    if (afterCount > campaign.targetCount && afterCount > beforeCount) {
       overCapacityCount += 1;
       issues.push({
         code: "campaign_capacity_exceeded",
