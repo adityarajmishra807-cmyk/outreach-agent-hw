@@ -136,6 +136,18 @@ export interface AddResearchNoteResult {
   created: boolean;
 }
 
+export type ResearchReadiness = "not_started" | "needs_verification" | "evidence_recorded";
+
+export interface LeadResearchSummary {
+  campaignId: string;
+  leadId: string;
+  noteCount: number;
+  directlyObservedCount: number;
+  needsVerificationCount: number;
+  categoriesCovered: ResearchCategory[];
+  readiness: ResearchReadiness;
+}
+
 export interface ExtensionState {
   campaigns: Campaign[];
   activeCampaignId: string | null;
@@ -350,6 +362,37 @@ export function addManualLead(
     reason,
     leadCount: countCampaignLeads(attempt.leads, campaignId),
     reviewFlags: [...row.reviewFlags]
+  };
+}
+
+/** Summary reports evidence coverage only; it is not an automated lead score or qualification decision. */
+export function summarizeLeadResearch(
+  state: ExtensionState,
+  campaignId: string,
+  leadId: string
+): LeadResearchSummary {
+  const notes = (state.researchNotes ?? []).filter((note) =>
+    note.campaignId === campaignId && note.leadId === leadId
+  );
+  const categoriesCovered = RESEARCH_CATEGORIES.filter((category) =>
+    notes.some((note) => note.category === category)
+  );
+  const directlyObservedCount = notes.filter((note) => note.confidence === "observed").length;
+  const needsVerificationCount = notes.filter((note) => note.confidence === "needs_verification").length;
+  const readiness: ResearchReadiness = notes.length === 0
+    ? "not_started"
+    : needsVerificationCount > 0
+      ? "needs_verification"
+      : "evidence_recorded";
+
+  return {
+    campaignId,
+    leadId,
+    noteCount: notes.length,
+    directlyObservedCount,
+    needsVerificationCount,
+    categoriesCovered,
+    readiness
   };
 }
 
