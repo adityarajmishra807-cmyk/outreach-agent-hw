@@ -26,6 +26,7 @@ Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**,
 - Record research notes by lead using structured categories, a specific observed fact, a user-supplied evidence URL, confidence, and an optional separately labeled opportunity hypothesis.
 - Deduplicate identical research notes; show note counts, covered categories, and evidence-verification state in the lead queue, plus the latest 12 notes in the evidence log.
 - Research status is descriptive evidence coverage only, not an automated lead score or qualification verdict.
+- Prepare a local plain-text evidence bundle for the selected lead, with source provenance, campaign context, observed notes, verification-needed notes, hypotheses, and review flags. The bundle is not independently verified and is not a draft.
 - Validate headers and rows; report rejected records and invalid optional fields.
 - Deduplicate against campaign leads by normalized Instagram handle, website domain, then business name + location.
 - Preserve source evidence on merges, make unchanged imports idempotent, and flag ambiguous/conflicting identities for review.
@@ -57,8 +58,10 @@ The parser accepts UTF-8/BOM, quoted commas, escaped quotes and embedded newline
 10. In **Record an observation**, select a lead, choose a category, enter a factual observation of at least 12 characters, enter the URL you personally reviewed, and set its confidence. Keep any potential opportunity in the separately labelled hypothesis field.
 11. Save the note, confirm it appears in **Recent research notes**, and confirm the lead queue shows the research-note count. Try saving the exact same note again; it should not create a duplicate.
 12. Try an invalid evidence URL or a lead from another campaign using the worker API harness tests; such notes must be rejected.
+13. Select the same lead and click **Prepare evidence bundle**. Confirm it contains campaign context, source URLs, factual notes, hypotheses in their separate section, and the trust-boundary notice. Select/copy the text manually if needed.
+14. Change the selected lead or add another research note; prepare the bundle again and ensure the output is a fresh snapshot for the selected lead.
 
-The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. Phase 3 source entry records use user-supplied information only; the extension does not fetch or scrape the pages. Source-specific toggles are enforced. CI verifies the build, worker API harness, source intake, and research-note validation/persistence. A real Chrome UI/import/research/panel-reopen test is still required; CI does not prove the live browser UI was manually operated. Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
+The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. Phase 3 source entry records use user-supplied information only; the extension does not fetch or scrape the pages. Source-specific toggles are enforced. CI verifies the build, packaged module imports, worker API harness, source intake, research-note validation/persistence, and evidence bundle formatting. Latest successful run: [39669685690](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39669685690). A real Chrome UI/import/research/bundle/panel-reopen test is still required; CI does not prove the live browser UI was manually operated. Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
 
 ## Safety boundaries
 
