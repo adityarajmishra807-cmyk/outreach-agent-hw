@@ -2,7 +2,7 @@ import {
   createEmptyExtensionState,
   normalizeExtensionState,
   type ExtensionState
-} from "@horizon/shared/import-workflow";
+} from "../../packages/shared/src/import-workflow";
 
 export const EXTENSION_STATE_STORAGE_KEY = "horizon-outreach-state-v1";
 
