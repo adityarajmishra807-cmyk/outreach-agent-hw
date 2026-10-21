@@ -471,21 +471,21 @@ export function buildResearchEvidenceBundle(
     "DIRECTLY OBSERVED FACTS (USER-ASSERTED; VERIFY SOURCE BEFORE REUSE)",
     ...(directlyObserved.length
       ? directlyObserved.map((note) =>
-          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence URL: ${note.evidenceUrl}`
+          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\n  Evidence URL: ${note.evidenceUrl}`
         )
       : ["No notes are marked as directly observed."]),
     "",
     "OBSERVATIONS THAT NEED VERIFICATION",
     ...(needsVerification.length
       ? needsVerification.map((note) =>
-          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence URL: ${note.evidenceUrl}`
+          `- [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\n  Evidence URL: ${note.evidenceUrl}`
         )
       : ["No notes are marked as needing verification."]),
     "",
     "POTENTIAL OPPORTUNITY HYPOTHESES (NOT VERIFIED BUSINESS PROBLEMS)",
     ...(hypotheses.length
       ? hypotheses.map((note) =>
-          `- ${note.potentialOpportunity}\\n  Related observation: [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\\n  Evidence confidence: ${note.confidence.replaceAll("_", " ")}\\n  Evidence URL: ${note.evidenceUrl}`
+          `- ${note.potentialOpportunity}\n  Related observation: [${RESEARCH_CATEGORY_LABELS[note.category]}] ${note.observation}\n  Evidence confidence: ${note.confidence.replaceAll("_", " ")}\n  Evidence URL: ${note.evidenceUrl}`
         )
       : ["No opportunity hypotheses have been recorded."]),
     "",
@@ -500,7 +500,7 @@ export function buildResearchEvidenceBundle(
     "- If evidence is missing or uncertain, ask a neutral question or review the source before drafting.",
     "- This bundle is a research aid, not a qualification score or outreach draft."
   ];
-  const text = lines.join("\\n");
+  const text = lines.join("\n");
 
   return {
     campaignId,
