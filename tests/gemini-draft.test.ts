@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../web/app/api/drafts/generate/route";
 import {
@@ -89,6 +90,21 @@ describe("evidence-grounded Gemini draft generation", () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("keeps Gemini credentials and direct provider requests out of client code", () => {
+    const clientSource = readFileSync(new URL("../web/app/draft-studio.tsx", import.meta.url), "utf8");
+    expect(clientSource).toContain('fetch("/api/drafts/generate"');
+    expect(clientSource).not.toContain("GEMINI_API_KEY");
+    expect(clientSource).not.toContain("generativelanguage.googleapis.com");
+    expect(clientSource).not.toContain("DRAFT_STUDIO_ACCESS_KEY");
+  });
+
+  it("preserves the manual-send invariant in the Draft Studio UI", () => {
+    const clientSource = readFileSync(new URL("../web/app/draft-studio.tsx", import.meta.url), "utf8");
+    expect(clientSource).not.toMatch(/autoSend|clickSend|sendInstagramDm|submitInstagramMessage|sendButton/i);
+    expect(clientSource).toContain("It has not been sent.");
+    expect(clientSource).toContain("Copy edited draft");
   });
 
   it("accepts only a complete generated evidence bundle and a supported tone", () => {
