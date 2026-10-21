@@ -634,7 +634,7 @@ export function stringifyImportExceptions(rows: ImportExceptionExportRow[]): str
   const inputHeaders = uniqueImportHeaders(rows.flatMap((row) => Object.keys(row.rawFields)));
   const headers = [...inputHeaders, "_import_status", "_import_row_number", "_import_reason"];
   const escapeCell = (value: string): string => /[",\r\n]/.test(value)
-    ? `"${value.replace(/"/g, '""')} "`.replace(/" $/, '"')
+    ? `"${value.replace(/"/g, '""')}"`
     : value;
   const lines = [headers.map((header) => escapeCell(header)).join(",")];
 
