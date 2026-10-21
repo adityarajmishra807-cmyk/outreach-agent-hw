@@ -178,6 +178,14 @@ describe("campaign lead deduplication", () => {
     expect(repeated.leads).toHaveLength(2);
   });
 
+  it("does not treat invalid Instagram handles as reliable identity keys", () => {
+    const result = dedupe("businessName,instagramUsername\nNorth Gym,bad handle\nNorth Gym,bad handle");
+    expect(result.createdCount).toBe(2);
+    expect(result.needsReviewCount).toBe(0);
+    expect(result.leads).toHaveLength(2);
+    expect(result.leads[0].reviewFlags).toContain("invalid_instagram_username");
+  });
+
   it("keeps deduplication scoped to the selected campaign", () => {
     const first = dedupe("businessName,website\nNorth Gym,north.example", [], "campaign-1");
     const second = deduplicateImportedLeads(
