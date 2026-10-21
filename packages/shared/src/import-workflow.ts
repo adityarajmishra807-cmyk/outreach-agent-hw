@@ -36,6 +36,7 @@ export interface ImportPreviewRow {
   businessName: string;
   action: ImportDecisionAction | "over_capacity" | "rejected";
   reason?: string;
+  candidateIds?: string[];
   reviewFlags?: string[];
 }
 
