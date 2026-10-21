@@ -26,6 +26,7 @@ Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**,
 - Enforce the campaign lead cap and display a lead queue with status/source/review flags.
 - Prepare a correction CSV for rejected and over-capacity rows; the user manually clicks the download link.
 - Show pause/resume/stop controls.
+- Automated tests cover state migration/round-trip, failed writes, import commit idempotency, campaign-cap enforcement, and exceptions export.
 
 ## CSV format
 
@@ -47,7 +48,7 @@ The parser accepts UTF-8/BOM, quoted commas, escaped quotes and embedded newline
 8. Use a campaign with a low target (e.g. 2) and a CSV with more unique records to verify over-capacity rows remain unimported and appear in the exceptions CSV.
 9. Check that warning/rejected rows explain what needs review or correction.
 
-The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
+The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. CI tests cover the pure import-commit transaction and state-store wrapper, but a real Chrome import/panel-reopen test is still required. Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
 
 ## Safety boundaries
 
