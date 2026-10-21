@@ -114,19 +114,35 @@ describe("extension state persistence", () => {
       now: "2026-10-22T01:00:00.000Z",
       createId: idFactory("new")
     });
+    const withResearch = {
+      ...committed.state,
+      researchNotes: [{
+        id: "research-1",
+        campaignId: "campaign-1",
+        leadId: committed.state.leads[0].id,
+        recordedAt: "2026-10-22T01:30:00.000Z",
+        category: "services_offered" as const,
+        observation: "The service page lists personal training.",
+        evidenceUrl: "https://north.example/services",
+        confidence: "needs_verification" as const,
+        potentialOpportunity: "A clearer enquiry path may help visitors."
+      }]
+    };
     const storage = makeStorage();
     const store = createExtensionStateStore(storage.area);
 
-    await store.save(committed.state);
+    await store.save(withResearch);
     const restored = await store.load();
 
-    expect(restored).toEqual(committed.state);
+    expect(restored).toEqual(withResearch);
     expect(restored.campaigns).toHaveLength(1);
     expect(restored.queueTasks).toHaveLength(1);
     expect(restored.leads).toHaveLength(2);
     expect(restored.imports).toHaveLength(1);
     expect(restored.sourceEvents).toHaveLength(1);
     expect(restored.sourceEvents[0].sourceUrl).toBe("https://north.example");
+    expect(restored.researchNotes).toHaveLength(1);
+    expect(restored.researchNotes[0].evidenceUrl).toBe("https://north.example/services");
   });
 
   it("keeps the previously saved state when the storage write fails", async () => {
