@@ -213,7 +213,7 @@ describe("CSV import commit transaction", () => {
     expect(exported.csvText).toContain("_import_status");
     expect(exported.csvText).toContain("over_capacity");
     expect(exported.csvText).toContain("rejected");
-    expect(exported.csvText).toContain("Campaign target of 1 leads is full");
+    expect(exported.csvText).toContain("campaign target of 1 leads is full");
     expect(exported.csvText).toContain("Business name is required.");
   });
 
