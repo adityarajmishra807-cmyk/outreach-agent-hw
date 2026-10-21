@@ -34,7 +34,7 @@ The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, a
 
 **Phase 2 — implemented; manual browser acceptance pending.** CSV validation, deduplication, local commit, lead queue, and exception export are implemented and automated-test verified. Real-Chrome acceptance remains open; data is local to the current Chrome profile and is not cloud-synced. See [Phase 2 plan](docs/PHASE-2-PLAN.md).
 
-**Current milestone: Phase 3 — manual source intake and evidence-first research.** The side panel supports individual lead entry with source gates, a source activity log, and structured research notes that keep observed facts separate from opportunity hypotheses. Research notes require a user-supplied HTTP/HTTPS evidence URL, record confidence, and are saved locally. The extension does not fetch or scrape source pages. Automated messaging remains disabled. See [Phase 3 plan](docs/PHASE-3-PLAN.md). Latest automated checks are being rerun for the research-note changes.
+**Current milestone: Phase 3 — manual source intake and evidence-first research.** The side panel supports individual lead entry with source gates, a source activity log, and structured research notes that keep observations separate from opportunity hypotheses. Notes require a user-supplied HTTP/HTTPS evidence URL, record confidence, and are saved locally. The lead queue summarizes evidence coverage and flags notes needing verification without assigning an automated score. The extension does not fetch or scrape source pages. Automated messaging remains disabled. See [Phase 3 plan](docs/PHASE-3-PLAN.md).
 
 ## Development
 
