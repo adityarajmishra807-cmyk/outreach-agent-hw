@@ -163,9 +163,19 @@ describe("campaign lead deduplication", () => {
   });
 
   it("does not deduplicate similar business names without a shared strong key or location", () => {
-    const result = dedupe("businessName\nNorth Gym\nNorth Gym");
+    const csv = "businessName\nNorth Gym\nNorth Gym";
+    const result = dedupe(csv);
     expect(result.createdCount).toBe(2);
     expect(result.leads).toHaveLength(2);
+
+    const repeated = deduplicateImportedLeads(rows(csv), result.leads, {
+      campaignId: "campaign-1",
+      now: "2026-10-22T00:05:00.000Z",
+      createId: idFactory()
+    });
+    expect(repeated.createdCount).toBe(0);
+    expect(repeated.duplicateCount).toBe(2);
+    expect(repeated.leads).toHaveLength(2);
   });
 
   it("keeps deduplication scoped to the selected campaign", () => {
