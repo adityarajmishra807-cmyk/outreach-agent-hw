@@ -15,7 +15,7 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 
 ## Architecture
 
-- `extension/`: Chrome Manifest V3 side panel, background worker, local queue, CSV import preview/commit, and campaign lead queue.
+- `extension/`: Chrome Manifest V3 side panel, background worker, local queue, CSV import, manually recorded lead sources, and evidence-first research notes.
 - `web/`: Next.js dashboard and Vercel API routes.
 - `packages/shared/`: campaign/lead/draft types, validation, normalization, and queue state transitions.
 - `supabase/migrations/`: initial schema and owner-scoped Row Level Security policies.
@@ -32,7 +32,9 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 
 The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, and the user confirmed the extension loads and campaign controls work in Chrome. See [Phase 1 verification](docs/PHASE-1-FOUNDATION.md) and the [successful CI run](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39463541084).
 
-**Current milestone: Phase 2 — in progress.** The CSV parser, validation preview, canonical lead deduplication, local-storage import commit, campaign lead queue, and download of rejected/over-capacity rows are implemented. CI passed at [run 39663441423](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39663441423), including 50 unit/integration tests, TypeScript checks, both builds, manifest/resource verification, and mocked Chrome worker runtime checks. The remaining acceptance step is manual CSV-import testing in a real Chrome profile. Data is stored in the current Chrome profile only; Supabase cloud sync is not connected. See [Phase 2 plan and remaining checklist](docs/PHASE-2-PLAN.md).
+**Phase 2 — implemented; manual browser acceptance pending.** CSV validation, deduplication, local commit, lead queue, and exception export are implemented and automated-test verified. Real-Chrome acceptance remains open; data is local to the current Chrome profile and is not cloud-synced. See [Phase 2 plan](docs/PHASE-2-PLAN.md).
+
+**Current milestone: Phase 3 — manual source intake and evidence-first research.** The side panel supports individual lead entry with source gates, a source activity log, and structured research notes that keep observed facts separate from opportunity hypotheses. Research notes require a user-supplied HTTP/HTTPS evidence URL, record confidence, and are saved locally. The extension does not fetch or scrape source pages. Automated messaging remains disabled. See [Phase 3 plan](docs/PHASE-3-PLAN.md). Latest automated checks are being rerun for the research-note changes.
 
 ## Development
 
