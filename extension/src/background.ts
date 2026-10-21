@@ -14,11 +14,13 @@ import {
   validateCampaignConfig
 } from "@horizon/shared";
 import {
+  addManualLead as buildAddManualLead,
   buildCsvImportCommit,
   exportCsvExceptions as buildCsvExceptions,
   previewCsvImport as buildCsvPreview,
   type ExtensionState,
-  type ImportPreview
+  type ImportPreview,
+  type ManualLeadInput
 } from "@horizon/shared/import-workflow";
 import { createExtensionStateStore } from "@horizon/shared/state-store";
 
@@ -33,7 +35,8 @@ type ExtensionMessage =
   | { type: "GET_QUEUE_COUNTS"; campaignId: string }
   | { type: "PREVIEW_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
   | { type: "COMMIT_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
-  | { type: "EXPORT_CSV_EXCEPTIONS"; campaignId: string; fileName: string; csvText: string };
+  | { type: "EXPORT_CSV_EXCEPTIONS"; campaignId: string; fileName: string; csvText: string }
+  | { type: "ADD_MANUAL_LEAD"; campaignId: string; lead: ManualLeadInput };
 
 const stateStore = createExtensionStateStore(chrome.storage.local);
 
@@ -188,6 +191,21 @@ async function exportCsvExceptions(
   });
 }
 
+
+async function addManualSourceLead(
+  campaignId: string,
+  lead: ManualLeadInput
+): Promise<ReturnType<typeof buildAddManualLead>> {
+  await ensureRecovered();
+  const current = await loadState();
+  const result = buildAddManualLead(current, campaignId, lead, {
+    now: new Date().toISOString(),
+    createId: makeId
+  });
+  await saveState(result.state);
+  return result;
+}
+
 async function commitCsvImport(
   campaignId: string,
   fileName: string,
@@ -240,6 +258,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
           commitCsvImport(message.campaignId, message.fileName, message.csvText)
         );
         return { ok: true, state: committed.state, importResult: committed.importResult };
+      }
+      case "ADD_MANUAL_LEAD": {
+        const added = await serializeStateMutation(() =>
+          addManualSourceLead(message.campaignId, message.lead)
+        );
+        const { state, ...manualResult } = added;
+        return { ok: true, state, manualResult };
       }
     }
   };
