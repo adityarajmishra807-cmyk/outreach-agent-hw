@@ -7,7 +7,7 @@ import {
 import type { ImportLeadRow, LeadSourceProvenance } from "./csv-import";
 
 export type LeadMatchKey = "instagram_username" | "website_domain" | "business_name_location";
-export type ImportDecisionAction = "created" | "merged" | "duplicate" | "needs_review";
+export type ImportDecisionAction = "created" | "merged" | "duplicate" | "needs_review" | "over_capacity";
 
 export interface CanonicalImportedLead {
   id: string;
@@ -45,12 +45,14 @@ export interface DeduplicationResult {
   mergedCount: number;
   duplicateCount: number;
   needsReviewCount: number;
+  overCapacityCount: number;
 }
 
 export interface DeduplicationOptions {
   campaignId: string;
   now?: string;
   createId: () => string;
+  maxLeads?: number;
 }
 
 interface MatchResult {
@@ -215,6 +217,10 @@ export function deduplicateImportedLeads(
 ): DeduplicationResult {
   if (!options.campaignId.trim()) throw new Error("Campaign ID is required.");
   if (typeof options.createId !== "function") throw new Error("An ID generator is required.");
+  if (options.maxLeads !== undefined &&
+      (!Number.isInteger(options.maxLeads) || options.maxLeads < 1 || options.maxLeads > 100)) {
+    throw new Error("Maximum campaign leads must be an integer between 1 and 100.");
+  }
 
   const now = options.now ?? new Date().toISOString();
   const leads = existingLeads.map(cloneLead);
@@ -223,6 +229,10 @@ export function deduplicateImportedLeads(
   let mergedCount = 0;
   let duplicateCount = 0;
   let needsReviewCount = 0;
+  let overCapacityCount = 0;
+
+  const canAddLead = (): boolean => options.maxLeads === undefined ||
+    leads.filter((lead) => lead.campaignId === options.campaignId).length < options.maxLeads;
 
   for (const row of incomingRows) {
     const scoped = leads.filter((lead) => lead.campaignId === options.campaignId);
@@ -254,6 +264,15 @@ export function deduplicateImportedLeads(
 
     const match = findStrongestMatch(leads, options.campaignId, row);
     if (!match) {
+      if (!canAddLead()) {
+        overCapacityCount += 1;
+        decisions.push({
+          rowNumber: row.rowNumber,
+          action: "over_capacity",
+          reason: `Campaign lead cap of ${options.maxLeads} has been reached.`
+        });
+        continue;
+      }
       const created = newCanonicalLead(row, options.campaignId, options.createId(), now);
       leads.push(created);
       createdCount += 1;
@@ -267,6 +286,17 @@ export function deduplicateImportedLeads(
 
     if (match.matches.length !== 1 || hasIdentityConflict(match.matches[0], row)) {
       const candidates = match.matches;
+      if (!canAddLead()) {
+        overCapacityCount += 1;
+        decisions.push({
+          rowNumber: row.rowNumber,
+          action: "over_capacity",
+          candidateIds: candidates.map((lead) => lead.id),
+          matchKey: match.key,
+          reason: `Campaign lead cap of ${options.maxLeads} has been reached; this conflicting match was not added.`
+        });
+        continue;
+      }
       const reviewLead = newCanonicalLead(
         row,
         options.campaignId,
@@ -304,5 +334,5 @@ export function deduplicateImportedLeads(
     });
   }
 
-  return { leads, decisions, createdCount, mergedCount, duplicateCount, needsReviewCount };
+  return { leads, decisions, createdCount, mergedCount, duplicateCount, needsReviewCount, overCapacityCount };
 }
