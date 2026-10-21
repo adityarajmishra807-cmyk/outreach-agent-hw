@@ -147,16 +147,16 @@ function parseCsvRecords(text: string, maxRecords: number): ParsedCsvRecords {
 
   const pushRecord = (): ImportIssue | undefined => {
     record.push(field);
-    if (!isBlankRecord(record)) {
-      if (records.length >= maxRecords) {
-        return {
-          code: "too_many_rows",
-          message: `CSV exceeds the configured limit of ${Math.max(0, maxRecords - 1).toLocaleString()} data rows.`,
-          severity: "error"
-        };
-      }
-      records.push(record);
+    if (records.length >= maxRecords) {
+      return {
+        code: "too_many_rows",
+        message: `CSV exceeds the configured limit of ${Math.max(0, maxRecords - 1).toLocaleString()} rows; blank lines count toward this safety limit.`,
+        severity: "error"
+      };
     }
+    // Preserve blank records so row numbers shown in validation messages line up
+    // with the CSV record positions. Blank lines are ignored during validation.
+    records.push(record);
     record = [];
     field = "";
     inQuotes = false;
@@ -388,15 +388,16 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
   const parsed = parseCsvRecords(csvText, maxRows + 1);
   if (parsed.issue) return blankSummary([], [parsed.issue]);
 
-  const [headerRecord, ...dataRecords] = parsed.records;
-  if (!headerRecord?.length) {
+  const headerIndex = parsed.records.findIndex((record) => !isBlankRecord(record));
+  if (headerIndex < 0) {
     return blankSummary([], [{
       code: "missing_header",
-      message: "CSV must include a header row.",
+      message: "CSV must include a non-empty header row.",
       severity: "error"
     }]);
   }
-
+  const headerRecord = parsed.records[headerIndex];
+  const dataRecords = parsed.records.slice(headerIndex + 1);
   const headers = headerRecord.map((header) => header.replace(/^\uFEFF/, "").trim());
   const normalizedHeaders = headers.map(normalizeHeader);
   if (normalizedHeaders.some((header) => !header)) {
@@ -455,7 +456,7 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
     const cells = dataRecords[index];
     if (isBlankRecord(cells)) continue;
     totalRows += 1;
-    const rowNumber = index + 2;
+    const rowNumber = headerIndex + index + 2;
     const rawFields = toRawFields(headers, cells);
     const rowIssues: ImportIssue[] = [];
 
