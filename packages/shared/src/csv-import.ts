@@ -325,9 +325,16 @@ export function createImportFingerprint(input: {
   sourceType: LeadSource;
   notes?: string;
   rowNumber?: number;
+  reviewFlags?: string[];
 }): string {
+  const handle = input.instagramUsername ? normalizeInstagramUsername(input.instagramUsername) : "";
+  const hasValidHandle = Boolean(
+    handle &&
+    !input.reviewFlags?.includes("invalid_instagram_username") &&
+    /^[a-z0-9._]{1,30}$/i.test(handle)
+  );
   const hasStableIdentity = Boolean(
-    input.instagramUsername ||
+    hasValidHandle ||
     input.websiteDomain ||
     normalizeBusinessName(input.location ?? "")
   );
@@ -571,7 +578,8 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
       sourceUrl,
       sourceType,
       notes,
-      rowNumber
+      rowNumber,
+      reviewFlags
     });
     const provenance: LeadSourceProvenance = {
       sourceType,
