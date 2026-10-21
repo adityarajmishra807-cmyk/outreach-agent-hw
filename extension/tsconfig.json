@@ -6,10 +6,28 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"],
-    "types": ["chrome"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "chrome"
+    ],
     "baseUrl": ".",
-    "paths": { "@horizon/shared": ["../packages/shared/src/index.ts"] }
+    "paths": {
+      "@horizon/shared": [
+        "../packages/shared/src/index.ts"
+      ],
+      "@horizon/shared/csv-import": [
+        "../packages/shared/src/csv-import.ts"
+      ],
+      "@horizon/shared/deduplication": [
+        "../packages/shared/src/deduplication.ts"
+      ]
+    }
   },
-  "include": ["src/**/*.ts", "vite.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "vite.config.ts"
+  ]
 }
