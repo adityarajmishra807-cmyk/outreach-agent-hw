@@ -14,7 +14,12 @@ import {
   validateCampaignConfig
 } from "@horizon/shared";
 import { deduplicateImportedLeads, type CanonicalImportedLead, type ImportDecisionAction } from "@horizon/shared/deduplication";
-import { parseLeadCsv, type ImportIssue } from "@horizon/shared/csv-import";
+import {
+  parseLeadCsv,
+  stringifyImportExceptions,
+  type ImportExceptionExportRow,
+  type ImportIssue
+} from "@horizon/shared/csv-import";
 
 const STORAGE_KEY = "horizon-outreach-state-v1";
 
@@ -64,6 +69,7 @@ interface ImportPreview {
 interface PreparedCsvImport {
   preview: ImportPreview;
   finalLeads: CanonicalImportedLead[];
+  exportExceptions: ImportExceptionExportRow[];
 }
 
 interface ExtensionState {
@@ -84,7 +90,8 @@ type ExtensionMessage =
   | { type: "TRANSITION_TASK"; taskId: string; nextStatus: QueueTaskStatus; error?: string }
   | { type: "GET_QUEUE_COUNTS"; campaignId: string }
   | { type: "PREVIEW_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
-  | { type: "COMMIT_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string };
+  | { type: "COMMIT_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
+  | { type: "EXPORT_CSV_EXCEPTIONS"; campaignId: string; fileName: string; csvText: string };
 
 const EMPTY_STATE: ExtensionState = {
   campaigns: [],
@@ -263,6 +270,7 @@ function prepareCsvImport(
   let overCapacityCount = 0;
   const issues: ImportIssue[] = [...parsed.issues];
   const rows: ImportPreviewRow[] = [];
+  const exportExceptions: ImportExceptionExportRow[] = [];
 
   for (const row of parsed.rows) {
     const beforeCount = countCampaignLeads(workingLeads, campaignId);
@@ -276,11 +284,18 @@ function prepareCsvImport(
 
     if (decision.action === "over_capacity") {
       overCapacityCount += 1;
+      const reason = `Row ${row.rowNumber} was not imported because the campaign target of ${campaign.targetCount} leads is full.`;
       issues.push({
         code: "campaign_capacity_exceeded",
-        message: `Row ${row.rowNumber} was not imported because the campaign target of ${campaign.targetCount} leads is full.`,
+        message: reason,
         severity: "warning",
         rowNumber: row.rowNumber
+      });
+      exportExceptions.push({
+        rowNumber: row.rowNumber,
+        rawFields: row.rawFields,
+        status: "over_capacity",
+        reason
       });
       rows.push({
         rowNumber: row.rowNumber,
@@ -323,11 +338,18 @@ function prepareCsvImport(
   for (const rejected of parsed.rejectedRows) {
     const nameField = Object.entries(rejected.rawFields)
       .find(([header]) => /business[\\s_-]*name|^business$|^name$/i.test(header));
+    const reason = rejected.issues.map((issue) => issue.message).join(" ");
+    exportExceptions.push({
+      rowNumber: rejected.rowNumber,
+      rawFields: rejected.rawFields,
+      status: "rejected",
+      reason
+    });
     rows.push({
       rowNumber: rejected.rowNumber,
       businessName: nameField?.[1] || "(missing business name)",
       action: "rejected",
-      reason: rejected.issues.map((issue) => issue.message).join(" ")
+      reason
     });
   }
   rows.sort((left, right) => left.rowNumber - right.rowNumber);
@@ -336,7 +358,7 @@ function prepareCsvImport(
     preview: {
       campaignId,
       fileName: safeFileName,
-      canCommit: parsed.acceptedCount > 0,
+      canCommit: createdCount + mergedCount + duplicateCount + needsReviewCount > 0,
       totalRows: parsed.totalRows,
       acceptedRows: parsed.acceptedCount,
       rejectedRows: parsed.rejectedCount,
@@ -352,7 +374,8 @@ function prepareCsvImport(
       issues: issues.slice(0, 100),
       rows: rows.slice(0, 100)
     },
-    finalLeads: workingLeads
+    finalLeads: workingLeads,
+    exportExceptions
   };
 }
 
@@ -363,6 +386,24 @@ async function previewCsvImport(
 ): Promise<ImportPreview> {
   const state = await loadState();
   return prepareCsvImport(state, campaignId, fileName, csvText).preview;
+}
+
+async function exportCsvExceptions(
+  campaignId: string,
+  fileName: string,
+  csvText: string
+): Promise<{ fileName: string; csvText: string; exceptionCount: number }> {
+  const state = await loadState();
+  const prepared = prepareCsvImport(state, campaignId, fileName, csvText);
+  const baseName = prepared.preview.fileName
+    .replace(/\.csv$/i, "")
+    .replace(/[^a-z0-9._-]+/gi, "_")
+    .slice(0, 100) || "leads";
+  return {
+    fileName: `${baseName}-exceptions.csv`,
+    csvText: stringifyImportExceptions(prepared.exportExceptions),
+    exceptionCount: prepared.exportExceptions.length
+  };
 }
 
 async function commitCsvImport(
@@ -429,6 +470,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       }
       case "PREVIEW_CSV_IMPORT":
         return { ok: true, preview: await previewCsvImport(message.campaignId, message.fileName, message.csvText) };
+      case "EXPORT_CSV_EXCEPTIONS":
+        return { ok: true, ...(await exportCsvExceptions(message.campaignId, message.fileName, message.csvText)) };
       case "COMMIT_CSV_IMPORT": {
         const committed = await serializeStateMutation(() =>
           commitCsvImport(message.campaignId, message.fileName, message.csvText)
