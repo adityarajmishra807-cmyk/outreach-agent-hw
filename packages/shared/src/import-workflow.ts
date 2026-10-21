@@ -2,7 +2,8 @@ import {
   type Campaign,
   type CampaignConfig,
   type QueueTask,
-  type LeadStatus
+  type LeadStatus,
+  type LeadSource
 } from "./index";
 import {
   deduplicateImportedLeads,
@@ -60,12 +61,51 @@ export interface ImportPreview {
   rows: ImportPreviewRow[];
 }
 
+export type ManualSourceAction = ImportDecisionAction | "over_capacity";
+
+export interface ManualLeadInput {
+  businessName: string;
+  location?: string;
+  websiteUrl?: string;
+  instagramUsername?: string;
+  instagramUrl?: string;
+  sourceUrl?: string;
+  sourceType: LeadSource;
+  notes?: string;
+}
+
+export interface SourceIntakeEvent {
+  id: string;
+  campaignId: string;
+  occurredAt: string;
+  sourceType: LeadSource;
+  businessName: string;
+  sourceUrl?: string;
+  action: ManualSourceAction;
+  leadId?: string;
+  candidateIds?: string[];
+  reviewFlags: string[];
+  reason?: string;
+}
+
+export interface AddManualLeadResult {
+  state: ExtensionState;
+  action: ManualSourceAction;
+  businessName: string;
+  leadId?: string;
+  candidateIds?: string[];
+  reason?: string;
+  leadCount: number;
+  reviewFlags: string[];
+}
+
 export interface ExtensionState {
   campaigns: Campaign[];
   activeCampaignId: string | null;
   queueTasks: QueueTask[];
   leads: CanonicalImportedLead[];
   imports: ImportBatch[];
+  sourceEvents: SourceIntakeEvent[];
 }
 
 export interface PreparedCsvImport {
@@ -85,7 +125,14 @@ export interface CsvCommitResult {
 }
 
 export function createEmptyExtensionState(): ExtensionState {
-  return { campaigns: [], activeCampaignId: null, queueTasks: [], leads: [], imports: [] };
+  return {
+    campaigns: [],
+    activeCampaignId: null,
+    queueTasks: [],
+    leads: [],
+    imports: [],
+    sourceEvents: []
+  };
 }
 
 /** Migrate the pre-Phase-2 state shape without dropping campaigns or queue tasks. */
@@ -96,8 +143,174 @@ export function normalizeExtensionState(raw: unknown): ExtensionState {
     activeCampaignId: typeof candidate.activeCampaignId === "string" ? candidate.activeCampaignId : null,
     queueTasks: Array.isArray(candidate.queueTasks) ? candidate.queueTasks : [],
     leads: Array.isArray(candidate.leads) ? candidate.leads : [],
-    imports: Array.isArray(candidate.imports) ? candidate.imports : []
+    imports: Array.isArray(candidate.imports) ? candidate.imports : [],
+    sourceEvents: Array.isArray(candidate.sourceEvents) ? candidate.sourceEvents : []
   };
+}
+
+const MANUAL_FIELD_LIMITS: Record<string, number> = {
+  businessName: 150,
+  location: 160,
+  websiteUrl: 2048,
+  instagramUsername: 100,
+  instagramUrl: 2048,
+  sourceUrl: 2048,
+  notes: 2000
+};
+
+function manualSourceEnabled(campaign: Campaign, sourceType: LeadSource): boolean {
+  switch (sourceType) {
+    case "meta_ad_library_manual":
+      return campaign.sourceConfig.metaAdLibrary;
+    case "instagram_manual":
+      return campaign.sourceConfig.instagram;
+    case "business_website":
+      return campaign.sourceConfig.businessWebsites;
+    case "google_maps_manual":
+    case "csv_import":
+    case "other_permitted_source":
+      return campaign.sourceConfig.csvImport;
+    default:
+      return false;
+  }
+}
+
+function getManualLeadCampaign(state: ExtensionState, campaignId: string, sourceType: LeadSource): Campaign {
+  const campaign = state.campaigns.find((item) => item.id === campaignId);
+  if (!campaign) throw new Error("Campaign not found.");
+  if (!["queued", "running", "paused"].includes(campaign.status)) {
+    throw new Error("Manual source intake is available only while the campaign is queued, running, or paused.");
+  }
+  if (!manualSourceEnabled(campaign, sourceType)) {
+    throw new Error("This source is disabled for the campaign. Enable its source setting before adding this record.");
+  }
+  return campaign;
+}
+
+function csvCell(value: string): string {
+  return /[",\r\n]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value;
+}
+
+function parseManualLead(input: ManualLeadInput): ReturnType<typeof parseLeadCsv>["rows"][number] {
+  if (!input || typeof input !== "object" || typeof input.businessName !== "string") {
+    throw new Error("Business name is required.");
+  }
+  const sourceTypes: LeadSource[] = [
+    "meta_ad_library_manual",
+    "instagram_manual",
+    "business_website",
+    "google_maps_manual",
+    "csv_import",
+    "other_permitted_source"
+  ];
+  if (!sourceTypes.includes(input.sourceType)) throw new Error("Choose a supported, user-provided source type.");
+
+  const values: Record<string, string> = {
+    businessName: input.businessName,
+    location: input.location ?? "",
+    websiteUrl: input.websiteUrl ?? "",
+    instagramUsername: input.instagramUsername ?? "",
+    instagramUrl: input.instagramUrl ?? "",
+    sourceUrl: input.sourceUrl ?? "",
+    sourceType: input.sourceType,
+    notes: input.notes ?? ""
+  };
+  for (const [field, maxLength] of Object.entries(MANUAL_FIELD_LIMITS)) {
+    const value = values[field] ?? "";
+    if (typeof value !== "string") throw new Error(field + " must be text.");
+    if (value.length > maxLength) throw new Error(field + " exceeds the " + maxLength + "-character limit.");
+    values[field] = value.trim();
+  }
+  if (!values.businessName) throw new Error("Business name is required.");
+
+  if (input.sourceType === "meta_ad_library_manual" && !values.sourceUrl) {
+    throw new Error("Add the Meta Ad Library URL you reviewed as source evidence.");
+  }
+  if (input.sourceType === "instagram_manual" && !values.sourceUrl && !values.instagramUrl) {
+    throw new Error("Add the Instagram profile URL as source evidence.");
+  }
+  if (input.sourceType === "business_website" && !values.sourceUrl && !values.websiteUrl) {
+    throw new Error("Add the business website URL as source evidence.");
+  }
+
+  const headers = Object.keys(values);
+  const csvText = [
+    headers.map(csvCell).join(","),
+    headers.map((header) => csvCell(values[header])).join(",")
+  ].join("\r\n");
+  const parsed = parseLeadCsv(csvText);
+  const row = parsed.rows[0];
+  if (!row || parsed.rejectedRows.length) {
+    const reason = parsed.rejectedRows.flatMap((item) => item.issues).map((issue) => issue.message).join(" ");
+    throw new Error(reason || parsed.issues[0]?.message || "The manual lead entry could not be validated.");
+  }
+  return row;
+}
+
+/**
+ * Accepts one user-researched business record. This performs no network request
+ * or browser extraction. Source settings are enforced, fields are parsed with
+ * the CSV contract, and exact/ambiguous identity matches use the shared policy.
+ */
+export function addManualLead(
+  state: ExtensionState,
+  campaignId: string,
+  input: ManualLeadInput,
+  options: CsvImportOptions
+): AddManualLeadResult {
+  const sourceType = input?.sourceType;
+  const sourceTypes: LeadSource[] = [
+    "meta_ad_library_manual",
+    "instagram_manual",
+    "business_website",
+    "google_maps_manual",
+    "csv_import",
+    "other_permitted_source"
+  ];
+  if (!sourceTypes.includes(sourceType)) throw new Error("Choose a supported, user-provided source type.");
+  const campaign = getManualLeadCampaign(state, campaignId, sourceType);
+  const row = parseManualLead(input);
+  const now = options.now ?? new Date().toISOString();
+  const attempt = deduplicateImportedLeads([row], state.leads, {
+    campaignId,
+    now,
+    createId: options.createId,
+    maxLeads: campaign.targetCount
+  });
+  const decision = attempt.decisions[0];
+  const reason = decision.reason;
+  const event: SourceIntakeEvent = {
+    id: options.createId(),
+    campaignId,
+    occurredAt: now,
+    sourceType,
+    businessName: row.businessName,
+    sourceUrl: row.sourceUrl,
+    action: decision.action,
+    leadId: decision.canonicalLeadId,
+    candidateIds: decision.candidateIds,
+    reviewFlags: [...row.reviewFlags],
+    reason
+  };
+  const nextState: ExtensionState = {
+    ...state,
+    leads: attempt.leads,
+    sourceEvents: [event, ...(state.sourceEvents ?? [])].slice(0, 500)
+  };
+  return {
+    state: nextState,
+    action: decision.action,
+    businessName: row.businessName,
+    leadId: decision.canonicalLeadId,
+    candidateIds: decision.candidateIds,
+    reason,
+    leadCount: countCampaignLeads(attempt.leads, campaignId),
+    reviewFlags: [...row.reviewFlags]
+  };
+}
+
+function sourceTypeEnabledForCsv(campaign: Campaign, sourceType: LeadSource): boolean {
+  return manualSourceEnabled(campaign, sourceType);
 }
 
 function countCampaignLeads(leads: CanonicalImportedLead[], campaignId: string): number {
