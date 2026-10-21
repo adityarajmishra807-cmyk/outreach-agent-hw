@@ -171,7 +171,7 @@ describe("CSV lead import contract", () => {
     const exported = stringifyImportExceptions([
       {
         rowNumber: 4,
-        rawFields: { businessName: "North, Gym", notes: 'Says "open"\\nnext line' },
+        rawFields: { businessName: "North, Gym", notes: 'Says "open"\nnext line' },
         status: "rejected",
         reason: "Business name needs review, see notes"
       },
@@ -183,11 +183,10 @@ describe("CSV lead import contract", () => {
       }
     ]);
 
-    expect(exported.startsWith("\\uFEFF")).toBe(true);
+    expect(exported.startsWith("\uFEFF")).toBe(true);
     expect(exported).toContain('"North, Gym"');
-    expect(exported).toContain('"Says ""open""\\nnext line"');
+    expect(exported).toContain('"Says ""open""\nnext line"');
     expect(exported).toContain('"Business name needs review, see notes"');
     expect(exported).toContain("over_capacity,9");
-    expect(exported.endsWith("\\r\\n")).toBe(true);
-  });
-});
+    expect(exported.endsWith("\r\n")).toBe(true);
+  });});
