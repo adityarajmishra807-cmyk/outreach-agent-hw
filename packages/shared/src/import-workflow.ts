@@ -99,6 +99,43 @@ export interface AddManualLeadResult {
   reviewFlags: string[];
 }
 
+export type ResearchCategory =
+  | "services_offered"
+  | "website_experience"
+  | "contact_path"
+  | "booking_or_purchase"
+  | "public_content"
+  | "other";
+
+export type ResearchConfidence = "observed" | "needs_verification";
+
+export interface ResearchNote {
+  id: string;
+  campaignId: string;
+  leadId: string;
+  recordedAt: string;
+  category: ResearchCategory;
+  observation: string;
+  potentialOpportunity?: string;
+  evidenceUrl: string;
+  confidence: ResearchConfidence;
+}
+
+export interface ResearchNoteInput {
+  leadId: string;
+  category: ResearchCategory;
+  observation: string;
+  potentialOpportunity?: string;
+  evidenceUrl: string;
+  confidence: ResearchConfidence;
+}
+
+export interface AddResearchNoteResult {
+  state: ExtensionState;
+  note: ResearchNote;
+  created: boolean;
+}
+
 export interface ExtensionState {
   campaigns: Campaign[];
   activeCampaignId: string | null;
@@ -106,6 +143,7 @@ export interface ExtensionState {
   leads: CanonicalImportedLead[];
   imports: ImportBatch[];
   sourceEvents: SourceIntakeEvent[];
+  researchNotes: ResearchNote[];
 }
 
 export interface PreparedCsvImport {
@@ -131,7 +169,8 @@ export function createEmptyExtensionState(): ExtensionState {
     queueTasks: [],
     leads: [],
     imports: [],
-    sourceEvents: []
+    sourceEvents: [],
+    researchNotes: []
   };
 }
 
@@ -144,7 +183,8 @@ export function normalizeExtensionState(raw: unknown): ExtensionState {
     queueTasks: Array.isArray(candidate.queueTasks) ? candidate.queueTasks : [],
     leads: Array.isArray(candidate.leads) ? candidate.leads : [],
     imports: Array.isArray(candidate.imports) ? candidate.imports : [],
-    sourceEvents: Array.isArray(candidate.sourceEvents) ? candidate.sourceEvents : []
+    sourceEvents: Array.isArray(candidate.sourceEvents) ? candidate.sourceEvents : [],
+    researchNotes: Array.isArray(candidate.researchNotes) ? candidate.researchNotes : []
   };
 }
 
@@ -310,6 +350,104 @@ export function addManualLead(
     reason,
     leadCount: countCampaignLeads(attempt.leads, campaignId),
     reviewFlags: [...row.reviewFlags]
+  };
+}
+
+const RESEARCH_CATEGORIES: ResearchCategory[] = [
+  "services_offered",
+  "website_experience",
+  "contact_path",
+  "booking_or_purchase",
+  "public_content",
+  "other"
+];
+const RESEARCH_CONFIDENCE: ResearchConfidence[] = ["observed", "needs_verification"];
+const MAX_RESEARCH_NOTES = 2_000;
+
+function normalizeEvidenceUrl(input: string): string {
+  const value = input.trim();
+  if (!value || value.length > 2048 || /\s/.test(value)) {
+    throw new Error("Enter a valid evidence URL beginning with https:// or http://.");
+  }
+  try {
+    const url = new URL(value);
+    if ((url.protocol !== "https:" && url.protocol !== "http:") ||
+      !url.hostname || url.username || url.password) {
+      throw new Error("Enter a valid public HTTP or HTTPS evidence URL.");
+    }
+    url.hash = "";
+    return url.toString();
+  } catch {
+    throw new Error("Enter a valid evidence URL beginning with https:// or http://.");
+  }
+}
+
+function normalizeResearchText(value: unknown, field: string, maxLength: number, required: boolean): string | undefined {
+  if (typeof value !== "string") {
+    if (required) throw new Error(field + " is required.");
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (required && normalized.length < 12) {
+    throw new Error(field + " must include a specific, factual description of at least 12 characters.");
+  }
+  if (normalized.length > maxLength) throw new Error(field + " cannot exceed " + maxLength + " characters.");
+  return normalized || undefined;
+}
+
+/** Save a user-recorded research observation and its supporting URL. No fetching occurs here. */
+export function addResearchNote(
+  state: ExtensionState,
+  campaignId: string,
+  input: ResearchNoteInput,
+  options: CsvImportOptions
+): AddResearchNoteResult {
+  if (!input || typeof input !== "object") throw new Error("Research details are required.");
+  const campaign = state.campaigns.find((item) => item.id === campaignId);
+  if (!campaign) throw new Error("Campaign not found.");
+  if (!["queued", "running", "paused"].includes(campaign.status)) {
+    throw new Error("Research notes can only be added to queued, running, or paused campaigns.");
+  }
+  const lead = state.leads.find((item) => item.id === input.leadId && item.campaignId === campaignId);
+  if (!lead) throw new Error("Choose a lead from the active campaign.");
+  if (!RESEARCH_CATEGORIES.includes(input.category)) throw new Error("Choose a supported research category.");
+  if (!RESEARCH_CONFIDENCE.includes(input.confidence)) throw new Error("Choose an evidence confidence level.");
+
+  const observation = normalizeResearchText(input.observation, "Observed fact", 1200, true)!;
+  const potentialOpportunity = normalizeResearchText(input.potentialOpportunity, "Potential opportunity hypothesis", 600, false);
+  const evidenceUrl = normalizeEvidenceUrl(input.evidenceUrl);
+
+  const existing = (state.researchNotes ?? []).find((note) =>
+    note.campaignId === campaignId &&
+    note.leadId === lead.id &&
+    note.category === input.category &&
+    note.observation.toLocaleLowerCase() === observation.toLocaleLowerCase() &&
+    note.evidenceUrl === evidenceUrl &&
+    note.confidence === input.confidence &&
+    (note.potentialOpportunity ?? "").toLocaleLowerCase() === (potentialOpportunity ?? "").toLocaleLowerCase()
+  );
+  if (existing) return { state, note: existing, created: false };
+
+  const notes = state.researchNotes ?? [];
+  if (notes.length >= MAX_RESEARCH_NOTES) {
+    throw new Error("The local research history has reached its safety limit. Export or archive notes before adding more.");
+  }
+
+  const note: ResearchNote = {
+    id: options.createId(),
+    campaignId,
+    leadId: lead.id,
+    recordedAt: options.now ?? new Date().toISOString(),
+    category: input.category,
+    observation,
+    potentialOpportunity,
+    evidenceUrl,
+    confidence: input.confidence
+  };
+  return {
+    state: { ...state, researchNotes: [note, ...notes] },
+    note,
+    created: true
   };
 }
 
