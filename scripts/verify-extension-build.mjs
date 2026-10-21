@@ -30,14 +30,14 @@ assert.ok(!manifest.permissions.includes("scripting"), "The scripting permission
 assert.ok(manifest.background?.service_worker, "Manifest must specify the background service worker.");
 const backgroundPath = assertInsideDist(join(distRoot, manifest.background.service_worker), "Background service worker");
 const backgroundSource = readFileSync(backgroundPath, "utf8");
-const workerImports = [...backgroundSource.matchAll(/(?:from|import)\\s*["']([^"']+\\.js)["']/g)].map((match) => match[1]);
+const workerImports = [...backgroundSource.matchAll(/(?:from|import)\s*["']([^"']+\.js)["']/g)].map((match) => match[1]);
 for (const specifier of workerImports) {
   assert.ok(
     specifier.startsWith("./") || specifier.startsWith("../") || specifier.startsWith("/"),
     "Background worker has an external module dependency: " + specifier
   );
   const importedPath = specifier.startsWith("/")
-    ? join(distRoot, specifier.replace(/^\\/+/, ""))
+    ? join(distRoot, specifier.replace(/^\/+/, ""))
     : resolve(dirname(backgroundPath), specifier);
   assertInsideDist(importedPath, "Background module dependency " + specifier);
 }
