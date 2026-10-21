@@ -209,7 +209,7 @@ function renderResearchLeadOptions(state: ExtensionState, campaign?: Campaign): 
   for (const lead of [...leads].sort((a, b) => a.businessName.localeCompare(b.businessName))) {
     const option = document.createElement("option");
     option.value = lead.id;
-    const noteCount = (state.researchNotes ?? []).filter((note) => note.leadId === lead.id).length;
+    const noteCount = (state.researchNotes ?? []).filter((note) => note.campaignId === campaign?.id && note.leadId === lead.id).length;
     option.textContent = noteCount ? lead.businessName + " · " + noteCount + " research note(s)" : lead.businessName;
     select.append(option);
   }
@@ -441,7 +441,10 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
 
     const metadata = document.createElement("small");
     metadata.className = "lead-row-meta";
-    metadata.textContent = `${lead.sourceEvidence.length} source record${lead.sourceEvidence.length === 1 ? "" : "s"} · ${lead.status.replaceAll("_", " ")}`;
+    const researchCount = (latestState?.researchNotes ?? []).filter((note) =>
+      note.campaignId === lead.campaignId && note.leadId === lead.id
+    ).length;
+    metadata.textContent = `${lead.sourceEvidence.length} source record${lead.sourceEvidence.length === 1 ? "" : "s"} · ${researchCount} research note${researchCount === 1 ? "" : "s"} · ${lead.status.replaceAll("_", " ")}`;
     main.append(title, details, metadata);
 
     const badge = document.createElement("span");
