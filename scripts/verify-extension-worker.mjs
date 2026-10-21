@@ -211,6 +211,44 @@ failure(await send({
   csvText: "businessName\nGym"
 }), "Campaign not found", "Unknown campaign");
 
+// Manual intake is source-gated, idempotent, and records evidence locally.
+const manualCampaignResponse = success(await send({
+  type: "CREATE_CAMPAIGN",
+  config: {
+    ...config,
+    name: "Manual source intake",
+    targetCount: 2,
+    sourceConfig: { csvImport: false, businessWebsites: true, metaAdLibrary: false, instagram: false }
+  }
+}), "Create manual-source campaign");
+const manualCampaignId = manualCampaignResponse.state.activeCampaignId;
+const manualLead = {
+  businessName: "Manual North Gym",
+  websiteUrl: "https://manual-north.example/services",
+  sourceType: "business_website",
+  notes: "User-reviewed test record"
+};
+const manualAdded = success(await send({
+  type: "ADD_MANUAL_LEAD",
+  campaignId: manualCampaignId,
+  lead: manualLead
+}), "Add manual source lead");
+assert.equal(manualAdded.manualResult.action, "created");
+assert.equal(manualAdded.state.leads.filter((lead) => lead.campaignId === manualCampaignId).length, 1);
+assert.equal(manualAdded.state.sourceEvents[0].sourceUrl, "https://manual-north.example/services");
+const manualRepeated = success(await send({
+  type: "ADD_MANUAL_LEAD",
+  campaignId: manualCampaignId,
+  lead: manualLead
+}), "Repeat manual source lead");
+assert.equal(manualRepeated.manualResult.action, "duplicate");
+assert.equal(manualRepeated.state.leads.filter((lead) => lead.campaignId === manualCampaignId).length, 1);
+failure(await send({
+  type: "ADD_MANUAL_LEAD",
+  campaignId: campaign.id,
+  lead: { businessName: "Disabled Website Source", websiteUrl: "https://disabled.example", sourceType: "business_website" }
+}), "This source is disabled", "Manual source gating");
+
 // Invalid rows can be previewed but not committed.
 const invalidCsv = "businessName,location\n,Dehradun\n";
 const invalidPreview = success(await send({
