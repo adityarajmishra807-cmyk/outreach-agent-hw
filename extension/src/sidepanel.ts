@@ -195,7 +195,7 @@ function updateManualLeadControls(): void {
   } else if (!campaignReady) {
     if (manualSourceHelpNode) manualSourceHelpNode.textContent = "Manual intake is disabled for completed, cancelled, or failed campaigns.";
   } else if (!isManualSourceEnabled(campaign, selectedType)) {
-    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "This source is disabled for the active campaign. Enable its matching source setting in Campaign Setup.";
+    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "This source is disabled for the active campaign. Create a campaign with this source enabled in Campaign Setup.";
   } else {
     if (manualSourceHelpNode) manualSourceHelpNode.textContent = "Enabled for this campaign. Enter details and URLs you personally reviewed; no automated extraction occurs.";
   }
@@ -298,8 +298,8 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
   if (!leads.length) {
     empty.hidden = false;
     empty.textContent = latestState && activeCampaign(latestState)
-      ? "No leads in this campaign yet. Import a CSV above."
-      : "Create a campaign and import a CSV to populate this queue.";
+      ? "No leads in this campaign yet. Import a CSV or add a researched lead above."
+      : "Create a campaign, then import a CSV or add a researched lead to populate this queue.";
     return;
   }
 
@@ -358,7 +358,7 @@ function render(state: ExtensionState): void {
   statusNode!.textContent = active ? active.status.replaceAll("_", " ") : "No campaign";
   nameNode!.textContent = active
     ? `${active.name} · ${activeLeads.length}/${active.targetCount} leads saved locally.`
-    : "Create a campaign to begin. Lead discovery adapters are not enabled in this build.";
+    : "Create a campaign to begin. Lead-source intake is manual-assisted; automatic source extraction is disabled.";
   leadCountNode!.textContent = String(activeLeads.length);
   draftsCountNode!.textContent = String(activeLeads.filter((lead) => lead.status === "draft_ready").length);
   contactedCountNode!.textContent = String(activeLeads.filter((lead) => lead.status === "manually_contacted").length);
