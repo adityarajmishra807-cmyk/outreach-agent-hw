@@ -620,3 +620,36 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
     warningCount: issues.filter((issue) => issue.severity === "warning").length
   };
 }
+
+
+export interface ImportExceptionExportRow {
+  rowNumber: number;
+  rawFields: Record<string, string>;
+  status: "rejected" | "over_capacity";
+  reason: string;
+}
+
+/** Serialize rejected/over-capacity input rows for correction and re-import. */
+export function stringifyImportExceptions(rows: ImportExceptionExportRow[]): string {
+  const inputHeaders = uniqueImportHeaders(rows.flatMap((row) => Object.keys(row.rawFields)));
+  const headers = [...inputHeaders, "_import_status", "_import_row_number", "_import_reason"];
+  const escapeCell = (value: string): string => /[",\r\n]/.test(value)
+    ? `"${value.replace(/"/g, '""')} "`.replace(/" $/, '"')
+    : value;
+  const lines = [headers.map((header) => escapeCell(header)).join(",")];
+
+  for (const row of rows) {
+    const values = [
+      ...inputHeaders.map((header) => row.rawFields[header] ?? ""),
+      row.status,
+      String(row.rowNumber),
+      row.reason
+    ];
+    lines.push(values.map((value) => escapeCell(value)).join(","));
+  }
+  return `\uFEFF${lines.join("\r\n")}\r\n`;
+}
+
+function uniqueImportHeaders(headers: string[]): string[] {
+  return [...new Set(headers)];
+}
