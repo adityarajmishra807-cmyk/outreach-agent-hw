@@ -80,6 +80,38 @@
             </div>
           </div>
         </section>
+        <section class="campaign-section source-intake-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PHASE 3 · SOURCE INTAKE</p><h2>Add researched lead</h2></div>
+            <span class="limit">MANUAL ONLY</span>
+          </div>
+          <p class="import-help">Enter a business you researched yourself. This form does not open, fetch, or scrape any source. Keep notes business-related and do not paste private messages, credentials, or sensitive personal details.</p>
+          <form id="manual-lead-form">
+            <label>Source type
+              <select id="manual-source-type" name="sourceType" required>
+                <option value="other_permitted_source">Other permitted source / own research</option>
+                <option value="business_website">Business-owned website</option>
+                <option value="instagram_manual">Instagram profile (user-reviewed)</option>
+                <option value="meta_ad_library_manual">Meta Ad Library (manual review)</option>
+              </select>
+            </label>
+            <p id="manual-source-help" class="import-file-status">Uses the enabled campaign source setting. No automatic source access is performed.</p>
+            <label>Business name<input name="businessName" required maxlength="150" placeholder="North Fitness Studio" /></label>
+            <div class="two-column">
+              <label>Location<input name="location" maxlength="160" placeholder="Dehradun" /></label>
+              <label>Website URL<input name="websiteUrl" maxlength="2048" type="url" placeholder="https://example.com" /></label>
+            </div>
+            <div class="two-column">
+              <label>Instagram username<input name="instagramUsername" maxlength="100" placeholder="@businessname" /></label>
+              <label>Instagram profile URL<input name="instagramUrl" maxlength="2048" type="url" placeholder="https://www.instagram.com/businessname/" /></label>
+            </div>
+            <label>Source evidence URL<input name="sourceUrl" maxlength="2048" type="url" placeholder="Link you personally reviewed" /></label>
+            <label>Research notes<textarea name="notes" maxlength="2000" rows="3" placeholder="Specific, factual business observation and where you saw it"></textarea></label>
+            <p id="manual-source-error" class="error" role="alert" aria-live="polite"></p>
+            <p id="manual-source-status" class="import-file-status" role="status" aria-live="polite"></p>
+            <button id="manual-lead-submit" class="primary" type="submit" disabled>Add researched lead</button>
+          </form>
+        </section>
         <section class="campaign-section">
           <div class="section-heading"><div><p class="eyebrow">WORKSPACE</p><h2>Current campaign</h2></div><span id="status" class="status">No campaign</span></div>
           <div class="metrics">
@@ -99,8 +131,16 @@
             <div><p class="eyebrow">PROSPECTS</p><h2>Campaign lead queue</h2></div>
             <span id="lead-count-badge" class="status">0 leads</span>
           </div>
-          <p id="lead-list-empty" class="empty-state">Import a CSV to populate this campaign's lead queue.</p>
+          <p id="lead-list-empty" class="empty-state">Import a CSV or add a researched lead to populate this campaign's lead queue.</p>
           <div id="lead-list-rows" class="lead-list-rows"></div>
+        </section>
+        <section class="campaign-section source-activity-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PROVENANCE</p><h2>Recent source activity</h2></div>
+            <span class="limit">LAST 12</span>
+          </div>
+          <p id="source-activity-empty" class="empty-state">No manual source entries yet.</p>
+          <div id="source-activity-list" class="source-activity-list"></div>
         </section>
       </main>
       <footer>Phase 1 foundation · Local development scaffold</footer>
