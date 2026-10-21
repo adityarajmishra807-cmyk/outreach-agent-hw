@@ -38,3 +38,17 @@ input[type=file]{height:auto;min-height:37px;padding:6px;font-size:11px;backgrou
 .import-export-actions{display:flex;flex-direction:column;gap:7px;align-items:stretch}
 .download-link{display:block;padding:9px 10px;background:#e4f7f2;border:1px solid #bce8dc;border-radius:8px;color:#087b70;text-decoration:none;text-align:center;font-size:11px;font-weight:800;overflow-wrap:anywhere}
 .download-link:hover{text-decoration:underline;background:#d5f2eb}
+
+
+/* Phase 3 — manual, source-aware lead intake */
+textarea{width:100%;border:1px solid #dbe2eb;border-radius:8px;padding:9px 10px;background:#fff;color:#17243a;font:inherit;font-size:12px;font-weight:450;line-height:1.45;resize:vertical;outline:none}
+textarea:focus{border-color:#159f94;box-shadow:0 0 0 3px #159f9418}
+#manual-source-help{margin-top:-4px}
+#manual-lead-submit{width:100%}
+.import-warning{color:#925d16;background:#fff4dc;border:1px solid #f4dfad;border-radius:8px;padding:8px 9px}
+.source-activity-list{display:flex;flex-direction:column;gap:8px}
+.source-activity-row{display:flex;flex-direction:column;gap:5px;min-width:0;padding:10px 11px;background:#fff;border:1px solid #e1e7ef;border-radius:10px}
+.source-activity-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.source-activity-heading strong{font-size:11px;line-height:1.4;color:#20334b;overflow-wrap:anywhere}
+.source-activity-row small{font-size:9px;line-height:1.45;color:#65798e;overflow-wrap:anywhere;word-break:break-word}
+.source-activity-row .import-action-label{white-space:nowrap}
