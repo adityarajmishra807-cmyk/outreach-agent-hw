@@ -205,13 +205,17 @@ function parseManualLead(input: ManualLeadInput): ReturnType<typeof parseLeadCsv
   ];
   if (!sourceTypes.includes(input.sourceType)) throw new Error("Choose a supported, user-provided source type.");
 
+  const evidenceUrl = input.sourceUrl?.trim() ||
+    (input.sourceType === "business_website" ? input.websiteUrl?.trim() : undefined) ||
+    (input.sourceType === "instagram_manual" ? input.instagramUrl?.trim() : undefined) ||
+    "";
   const values: Record<string, string> = {
     businessName: input.businessName,
     location: input.location ?? "",
     websiteUrl: input.websiteUrl ?? "",
     instagramUsername: input.instagramUsername ?? "",
     instagramUrl: input.instagramUrl ?? "",
-    sourceUrl: input.sourceUrl ?? "",
+    sourceUrl: evidenceUrl,
     sourceType: input.sourceType,
     notes: input.notes ?? ""
   };
