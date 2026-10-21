@@ -1,5 +1,5 @@
 import "./sidepanel.css";
-import type { Campaign, CampaignConfig, LeadStatus, QueueTask } from "@horizon/shared";
+import type { Campaign, CampaignConfig, QueueTask } from "@horizon/shared";
 import type { CanonicalImportedLead, ImportDecisionAction } from "@horizon/shared/deduplication";
 import type { ImportIssue } from "@horizon/shared/csv-import";
 
@@ -139,7 +139,7 @@ function updateImportControls(): void {
   const previewBelongsToActiveCampaign = Boolean(currentPreview && campaign?.id === currentPreview.campaignId);
   if (confirmCsvButton) {
     confirmCsvButton.disabled = !previewBelongsToActiveCampaign || !currentPreview?.canCommit || importCompleted;
-    confirmCsvButton.hidden = !previewBelongsToActiveCampaign || !currentPreview;
+    confirmCsvButton.hidden = !previewBelongsToActiveCampaign || !currentPreview || importCompleted;
   }
   if (csvFileStatusNode && !selectedCsvText) {
     csvFileStatusNode.textContent = importEnabled
