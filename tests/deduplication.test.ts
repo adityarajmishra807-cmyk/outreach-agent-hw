@@ -127,6 +127,7 @@ describe("campaign lead deduplication", () => {
       identityStatus: "candidate",
       reviewFlags: ["possible_duplicate"]
     });
+    expect(second.leads[1].candidateIds).toEqual([first.leads[0].id]);
     expect(second.decisions[0]).toMatchObject({
       action: "needs_review",
       candidateIds: [first.leads[0].id],
