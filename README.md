@@ -20,7 +20,7 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 - `packages/shared/`: campaign/lead/draft types, validation, normalization, and queue state transitions.
 - `supabase/migrations/`: initial schema and owner-scoped Row Level Security policies.
 - `tests/`: domain and no-send safety tests.
-- Gemini API: server-side only (planned integration).
+- Gemini API: server-side only. The draft API and editable Draft Studio are implemented but disabled by default until configured.
 
 ## Current status
 
@@ -29,12 +29,15 @@ A human-in-the-loop lead research and Instagram DM drafting assistant.
 - [Source access matrix](docs/SOURCE-ACCESS-MATRIX.md)
 - [Phase 1 foundation progress and manual QA instructions](docs/PHASE-1-FOUNDATION.md)
 - [Chrome extension instructions](extension/README.md)
+- [Phase 4 — Gemini draft generation and access controls](docs/PHASE-4-PLAN.md)
 
 The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, and the user confirmed the extension loads and campaign controls work in Chrome. See [Phase 1 verification](docs/PHASE-1-FOUNDATION.md) and the [successful CI run](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39463541084).
 
 **Phase 2 — implemented; manual browser acceptance pending.** CSV validation, deduplication, local commit, lead queue, and exception export are implemented and automated-test verified. Real-Chrome acceptance remains open; data is local to the current Chrome profile and is not cloud-synced. See [Phase 2 plan](docs/PHASE-2-PLAN.md).
 
-**Current milestone: Phase 3 — source intake and evidence bundle.** The side panel supports individual lead entry with source gates, a source activity log, structured research notes, evidence-coverage summaries, and a per-lead plain-text research bundle that separates observed notes from items needing verification and opportunity hypotheses. The bundle is a review aid—not independently verified findings, a lead score, or an outreach draft. The extension does not fetch or scrape source pages. CI passed at [run 39669685690](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39669685690): 72 automated tests, type checks, builds, module/resource verification and runtime checks. Real Chrome UI acceptance remains pending. See [Phase 3 plan](docs/PHASE-3-PLAN.md).
+**Phase 3 — implemented; real Chrome UI acceptance pending.** The extension supports source-aware lead intake, structured research notes, evidence coverage, and a local plain-text research bundle. It does not fetch or scrape source pages. The bundle is user-entered/imported evidence, not independent verification. See [Phase 3 plan](docs/PHASE-3-PLAN.md).
+
+**Current milestone: Phase 4 — server-side Gemini draft generation.** A guarded Next.js endpoint calls Gemini using a server-side key, validates response structure and evidence URL references, and maps quota/timeout errors to actionable messages. The Draft Studio lets the user paste a research bundle, choose tone, edit the returned draft, inspect evidence references, and copy it manually. Drafts are not saved or sent. Generation is disabled by default; public deployment should remain disabled until a real user-authentication layer and durable rate limiting are in place. See [Phase 4 plan](docs/PHASE-4-PLAN.md).
 
 ## Development
 
@@ -53,7 +56,7 @@ To load the extension after building, open `chrome://extensions`, enable Develop
 
 ## Security
 
-Use `.env.example` as a list of future environment variables. Keep Gemini and Supabase service credentials only in server-side environment variables. Never commit real keys or ship a privileged key in the extension/client bundle. Review Supabase RLS before applying migrations to a deployed project.
+Use .env.example as the environment-variable reference. For local web testing, configure the variables in web/.env.local; for Vercel, use the project's server-side environment settings. GEMINI_API_KEY must never be exposed to a client bundle. Keep GEMINI_DRAFTS_ENABLED=false by default. A separate DRAFT_STUDIO_ACCESS_KEY is a transitional single-operator gate, not account authentication; do not enable Gemini on a public deployment until real authentication and durable rate limiting protect the endpoint. Review Supabase RLS before applying migrations to a deployed project.
 
 ## Branching
 
