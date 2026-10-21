@@ -146,9 +146,13 @@ describe("Phase 3 evidence-first research notes", () => {
   });
 
   it("rejects notes for a terminal campaign without mutating saved history", () => {
-    const { state, leadId } = seedState({ status: "completed" });
+    const seeded = seedState();
+    const state = {
+      ...seeded.state,
+      campaigns: seeded.state.campaigns.map((item) => ({ ...item, status: "completed" as const }))
+    };
     const snapshot = structuredClone(state);
-    expect(() => addResearchNote(state, "campaign-1", validNote(leadId), {
+    expect(() => addResearchNote(state, "campaign-1", validNote(seeded.leadId), {
       createId: idFactory()
     })).toThrow("queued, running, or paused");
     expect(state).toEqual(snapshot);
