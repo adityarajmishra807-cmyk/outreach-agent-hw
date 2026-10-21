@@ -6,9 +6,20 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@horizon/shared": resolve(root, "../packages/shared/src/index.ts")
-    }
+    alias: [
+      {
+        find: "@horizon/shared/csv-import",
+        replacement: resolve(root, "../packages/shared/src/csv-import.ts")
+      },
+      {
+        find: "@horizon/shared/deduplication",
+        replacement: resolve(root, "../packages/shared/src/deduplication.ts")
+      },
+      {
+        find: "@horizon/shared",
+        replacement: resolve(root, "../packages/shared/src/index.ts")
+      }
+    ]
   },
   publicDir: "public",
   build: {
