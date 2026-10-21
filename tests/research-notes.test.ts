@@ -4,6 +4,7 @@ import {
   addManualLead,
   addResearchNote,
   createEmptyExtensionState,
+  summarizeLeadResearch,
   normalizeExtensionState
 } from "../packages/shared/src/import-workflow";
 import type { ResearchNoteInput } from "../packages/shared/src/import-workflow";
@@ -167,6 +168,42 @@ describe("Phase 3 evidence-first research notes", () => {
     expect(result.note.observation).not.toContain("opportunity");
     expect(result.note.potentialOpportunity).toContain("enquiry path");
     expect(result.note.confidence).toBe("needs_verification");
+  });
+
+  it("summarizes evidence coverage and flags verification gaps without assigning a lead score", () => {
+    const { state, leadId } = seedState();
+    expect(summarizeLeadResearch(state, "campaign-1", leadId)).toMatchObject({
+      noteCount: 0,
+      directlyObservedCount: 0,
+      needsVerificationCount: 0,
+      categoriesCovered: [],
+      readiness: "not_started"
+    });
+
+    const first = addResearchNote(state, "campaign-1", validNote(leadId), {
+      createId: idFactory("first")
+    });
+    expect(summarizeLeadResearch(first.state, "campaign-1", leadId)).toMatchObject({
+      noteCount: 1,
+      directlyObservedCount: 1,
+      needsVerificationCount: 0,
+      categoriesCovered: ["services_offered"],
+      readiness: "evidence_recorded"
+    });
+
+    const second = addResearchNote(first.state, "campaign-1", validNote(leadId, {
+      category: "contact_path",
+      observation: "The contact page lists a phone number but no enquiry form.",
+      evidenceUrl: "https://north.example/contact",
+      confidence: "needs_verification"
+    }), { createId: idFactory("second") });
+    expect(summarizeLeadResearch(second.state, "campaign-1", leadId)).toMatchObject({
+      noteCount: 2,
+      directlyObservedCount: 1,
+      needsVerificationCount: 1,
+      categoriesCovered: ["services_offered", "contact_path"],
+      readiness: "needs_verification"
+    });
   });
 
   it("initializes research history when migrating Phase 1/2 saved state", () => {
