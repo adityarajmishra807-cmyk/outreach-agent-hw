@@ -1,7 +1,7 @@
 # Phase 3 — Lead Source Workflows
 
 **Branch:** `main` only  
-**Status:** P3.1 source-aware manual intake and P3.5 evidence-first research notes implemented; automated verification pending for the latest research-note changes. Real-Chrome acceptance pending.  
+**Status:** Source-aware manual intake, evidence-first research notes, and evidence-coverage summaries are implemented. Final CI verification for the latest UI import fix is pending. Real-Chrome acceptance pending.  
 **Phase 2 status:** Implemented and CI-verified; real-Chrome acceptance remains open.
 
 ## Objective
@@ -44,7 +44,9 @@ Make campaign source settings meaningful and give the operator a consistent work
 - [x] Record a confidence state: directly observed or needs verification.
 - [x] Persist notes locally by campaign and lead, deduplicate exact repeats, and keep a recent evidence log in the side panel.
 - [x] Show note counts in the campaign lead queue and keep the evidence URL visible for user review.
+- [x] Summarize research coverage as not started, evidence recorded, or needs verification, with covered categories; explicitly do not calculate an automated lead score or qualification verdict.
 - [x] Add validation tests for evidence URLs, required facts, lead ownership, confidence/category enums, duplicate records, terminal campaigns, and legacy-state migration.
+- [x] Test research coverage summaries and verification-state transitions without assigning a lead score.
 - [x] Extend local-state persistence coverage and the compiled-worker runtime harness for note creation, deduplication, and restart persistence.
 - [ ] Confirm the current commit passes all CI checks.
 - [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
@@ -68,4 +70,4 @@ Make campaign source settings meaningful and give the operator a consistent work
 
 ## Next slice after this one
 
-After research-note UI acceptance, Phase 3 can add evidence-aware qualification summaries that draw only from the user's recorded observations, clearly distinguish facts from hypotheses, and flag missing/uncertain evidence. Do not add automatic HTTP fetches until the specific collection method and applicable access rules are reviewed. After source workflows are reliable, proceed to server-side Gemini draft generation and only then consider Supabase runtime persistence/authentication.
+Next, make a **research evidence bundle** that compiles the user's recorded facts, source URLs, categories, confidence levels, and separate opportunity hypotheses into a reviewable summary for each lead. This becomes the evidence input for later server-side Gemini draft generation. Do not automatically fetch websites or treat user-entered observations as independently verified. Supabase runtime persistence/authentication remains a later step.
