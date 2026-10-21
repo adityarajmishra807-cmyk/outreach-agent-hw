@@ -2,7 +2,15 @@ import "./sidepanel.css";
 import type { Campaign, CampaignConfig, LeadSource, QueueTask } from "@horizon/shared";
 import type { CanonicalImportedLead, ImportDecisionAction } from "@horizon/shared/deduplication";
 import type { ImportIssue } from "@horizon/shared/csv-import";
-import type { AddManualLeadResult, ManualLeadInput, SourceIntakeEvent } from "@horizon/shared/import-workflow";
+import type {
+  AddManualLeadResult,
+  AddResearchNoteResult,
+  ManualLeadInput,
+  ResearchCategory,
+  ResearchNote,
+  ResearchNoteInput,
+  SourceIntakeEvent
+} from "@horizon/shared/import-workflow";
 
 interface ImportBatch {
   id: string;
@@ -26,6 +34,7 @@ interface ExtensionState {
   leads: CanonicalImportedLead[];
   imports: ImportBatch[];
   sourceEvents: SourceIntakeEvent[];
+  researchNotes: ResearchNote[];
 }
 
 interface ImportPreviewRow {
@@ -68,6 +77,7 @@ type WorkerResponse =
       csvText?: string;
       exceptionCount?: number;
       manualResult?: Omit<AddManualLeadResult, "state">;
+      researchResult?: Omit<AddResearchNoteResult, "state">;
     }
   | { ok: false; error: string };
 
@@ -104,6 +114,13 @@ const manualSourceErrorNode = document.querySelector<HTMLElement>("#manual-sourc
 const manualSourceStatusNode = document.querySelector<HTMLElement>("#manual-source-status");
 const sourceActivityEmptyNode = document.querySelector<HTMLElement>("#source-activity-empty");
 const sourceActivityListNode = document.querySelector<HTMLElement>("#source-activity-list");
+const researchNoteForm = document.querySelector<HTMLFormElement>("#research-note-form");
+const researchLeadNode = document.querySelector<HTMLSelectElement>("#research-lead-id");
+const researchNoteSubmitButton = document.querySelector<HTMLButtonElement>("#research-note-submit");
+const researchNoteErrorNode = document.querySelector<HTMLElement>("#research-note-error");
+const researchNoteStatusNode = document.querySelector<HTMLElement>("#research-note-status");
+const researchNotesEmptyNode = document.querySelector<HTMLElement>("#research-notes-empty");
+const researchNotesListNode = document.querySelector<HTMLElement>("#research-notes-list");
 
 let latestState: ExtensionState | null = null;
 let selectedCsvText: string | null = null;
@@ -157,6 +174,108 @@ function canImportFor(campaign?: Campaign): boolean {
     campaign.sourceConfig.csvImport &&
     ["queued", "running", "paused"].includes(campaign.status)
   );
+}
+
+const RESEARCH_CATEGORY_LABELS: Record<ResearchCategory, string> = {
+  services_offered: "Services offered",
+  website_experience: "Website experience",
+  contact_path: "Contact / enquiry path",
+  booking_or_purchase: "Booking or purchase flow",
+  public_content: "Public content",
+  other: "Other factual observation"
+};
+
+function renderResearchLeadOptions(state: ExtensionState, campaign?: Campaign): void {
+  const select = requireNode(researchLeadNode, "#research-lead-id");
+  const previous = select.value;
+  const leads = campaign
+    ? state.leads.filter((lead) => lead.campaignId === campaign.id)
+    : [];
+  select.replaceChildren();
+
+  if (!leads.length) {
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Add or import a lead first";
+    select.append(emptyOption);
+    select.disabled = true;
+    return;
+  }
+
+  const prompt = document.createElement("option");
+  prompt.value = "";
+  prompt.textContent = "Choose a campaign lead";
+  select.append(prompt);
+  for (const lead of [...leads].sort((a, b) => a.businessName.localeCompare(b.businessName))) {
+    const option = document.createElement("option");
+    option.value = lead.id;
+    const noteCount = (state.researchNotes ?? []).filter((note) => note.leadId === lead.id).length;
+    option.textContent = noteCount ? lead.businessName + " · " + noteCount + " research note(s)" : lead.businessName;
+    select.append(option);
+  }
+  select.disabled = false;
+  if (previous && leads.some((lead) => lead.id === previous)) select.value = previous;
+}
+
+function updateResearchControls(): void {
+  const campaign = latestState ? activeCampaign(latestState) : undefined;
+  const usableCampaign = Boolean(campaign && ["queued", "running", "paused"].includes(campaign.status));
+  const hasLeads = Boolean(campaign && latestState?.leads.some((lead) => lead.campaignId === campaign.id));
+  if (researchNoteSubmitButton) {
+    researchNoteSubmitButton.disabled = !usableCampaign || !hasLeads || !researchLeadNode?.value;
+  }
+}
+
+function renderResearchNotes(state: ExtensionState, campaign?: Campaign): void {
+  const list = requireNode(researchNotesListNode, "#research-notes-list");
+  const empty = requireNode(researchNotesEmptyNode, "#research-notes-empty");
+  list.replaceChildren();
+  const notes = campaign
+    ? (state.researchNotes ?? []).filter((note) => note.campaignId === campaign.id).slice(0, 12)
+    : [];
+  if (!notes.length) {
+    empty.hidden = false;
+    return;
+  }
+
+  empty.hidden = true;
+  for (const note of notes) {
+    const lead = state.leads.find((item) => item.id === note.leadId);
+    const item = document.createElement("article");
+    item.className = "research-note-row";
+
+    const header = document.createElement("div");
+    header.className = "research-note-header";
+    const title = document.createElement("strong");
+    title.textContent = lead?.businessName ?? "Unknown lead";
+    const confidence = document.createElement("span");
+    confidence.className = "research-confidence " + (note.confidence === "observed" ? "research-confidence-observed" : "research-confidence-review");
+    confidence.textContent = note.confidence === "observed" ? "Directly observed" : "Needs verification";
+    header.append(title, confidence);
+
+    const category = document.createElement("small");
+    category.textContent = RESEARCH_CATEGORY_LABELS[note.category] + " · " + new Date(note.recordedAt).toLocaleString();
+
+    const observation = document.createElement("p");
+    observation.className = "research-observation";
+    observation.textContent = note.observation;
+
+    const evidence = document.createElement("a");
+    evidence.href = note.evidenceUrl;
+    evidence.target = "_blank";
+    evidence.rel = "noopener noreferrer";
+    evidence.textContent = "Evidence: " + note.evidenceUrl;
+    evidence.className = "research-evidence-link";
+
+    item.append(header, category, observation, evidence);
+    if (note.potentialOpportunity) {
+      const hypothesis = document.createElement("p");
+      hypothesis.className = "research-hypothesis";
+      hypothesis.textContent = "Potential opportunity (hypothesis): " + note.potentialOpportunity;
+      item.append(hypothesis);
+    }
+    list.append(item);
+  }
 }
 
 function sourceTypeLabel(sourceType: LeadSource): string {
@@ -368,8 +487,11 @@ function render(state: ExtensionState): void {
   stopButton!.disabled = !active || !["queued", "running", "paused"].includes(active.status);
   renderLeadList(activeLeads);
   renderSourceActivity(state, active?.id);
+  renderResearchLeadOptions(state, active);
+  renderResearchNotes(state, active);
   updateImportControls();
   updateManualLeadControls();
+  updateResearchControls();
 }
 
 function makePreviewRow(row: ImportPreviewRow): HTMLElement {
@@ -537,6 +659,59 @@ manualLeadForm?.addEventListener("submit", async (event) => {
   } catch (error) {
     if (manualSourceErrorNode) {
       manualSourceErrorNode.textContent = error instanceof Error ? error.message : "Could not add the researched lead.";
+    }
+  }
+});
+
+researchLeadNode?.addEventListener("change", () => {
+  if (researchNoteErrorNode) researchNoteErrorNode.textContent = "";
+  if (researchNoteStatusNode) researchNoteStatusNode.textContent = "";
+  updateResearchControls();
+});
+
+researchNoteForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (researchNoteErrorNode) researchNoteErrorNode.textContent = "";
+  if (researchNoteStatusNode) researchNoteStatusNode.textContent = "";
+  try {
+    const state = await getCurrentState();
+    const campaign = activeCampaign(state);
+    if (!campaign) throw new Error("Create a campaign before recording research.");
+    const data = new FormData(requireNode(researchNoteForm, "#research-note-form"));
+    const note: ResearchNoteInput = {
+      leadId: String(data.get("leadId") ?? "").trim(),
+      category: String(data.get("category") ?? "") as ResearchCategory,
+      observation: String(data.get("observation") ?? "").trim(),
+      evidenceUrl: String(data.get("evidenceUrl") ?? "").trim(),
+      potentialOpportunity: String(data.get("potentialOpportunity") ?? "").trim(),
+      confidence: String(data.get("confidence") ?? "needs_verification") as ResearchNoteInput["confidence"]
+    };
+    const response = await sendRawMessage({
+      type: "ADD_RESEARCH_NOTE",
+      campaignId: campaign.id,
+      note
+    });
+    if (!response.state || !response.researchResult) throw new Error("The worker returned no research-note result.");
+
+    render(response.state);
+    const result = response.researchResult;
+    if (researchNoteStatusNode) {
+      researchNoteStatusNode.textContent = result.created
+        ? "Research note saved locally with its evidence URL."
+        : "This exact research note already exists; no duplicate was saved.";
+      researchNoteStatusNode.classList.remove("import-warning");
+    }
+    const observationNode = researchNoteForm.querySelector<HTMLTextAreaElement>('textarea[name="observation"]');
+    const opportunityNode = researchNoteForm.querySelector<HTMLTextAreaElement>('textarea[name="potentialOpportunity"]');
+    if (result.created) {
+      if (observationNode) observationNode.value = "";
+      if (opportunityNode) opportunityNode.value = "";
+      if (researchLeadNode) researchLeadNode.value = result.note.leadId;
+    }
+    updateResearchControls();
+  } catch (error) {
+    if (researchNoteErrorNode) {
+      researchNoteErrorNode.textContent = error instanceof Error ? error.message : "Could not save the research note.";
     }
   }
 });
