@@ -13,72 +13,14 @@ import {
   transitionQueueTask,
   validateCampaignConfig
 } from "@horizon/shared";
-import { deduplicateImportedLeads, type CanonicalImportedLead, type ImportDecisionAction } from "@horizon/shared/deduplication";
 import {
-  parseLeadCsv,
-  stringifyImportExceptions,
-  type ImportExceptionExportRow,
-  type ImportIssue
-} from "@horizon/shared/csv-import";
-
-const STORAGE_KEY = "horizon-outreach-state-v1";
-
-interface ImportBatch {
-  id: string;
-  campaignId: string;
-  fileName: string;
-  importedAt: string;
-  parsedRows: number;
-  rejectedRows: number;
-  warningCount: number;
-  createdCount: number;
-  mergedCount: number;
-  duplicateCount: number;
-  needsReviewCount: number;
-  overCapacityCount: number;
-}
-
-interface ImportPreviewRow {
-  rowNumber: number;
-  businessName: string;
-  action: ImportDecisionAction | "over_capacity" | "rejected";
-  reason?: string;
-  reviewFlags?: string[];
-}
-
-interface ImportPreview {
-  campaignId: string;
-  fileName: string;
-  canCommit: boolean;
-  totalRows: number;
-  acceptedRows: number;
-  rejectedRows: number;
-  warningCount: number;
-  createdCount: number;
-  mergedCount: number;
-  duplicateCount: number;
-  needsReviewCount: number;
-  overCapacityCount: number;
-  currentLeadCount: number;
-  finalLeadCount: number;
-  targetCount: number;
-  issues: ImportIssue[];
-  rows: ImportPreviewRow[];
-}
-
-interface PreparedCsvImport {
-  preview: ImportPreview;
-  finalLeads: CanonicalImportedLead[];
-  exportExceptions: ImportExceptionExportRow[];
-}
-
-interface ExtensionState {
-  campaigns: Campaign[];
-  activeCampaignId: string | null;
-  queueTasks: QueueTask[];
-  leads: CanonicalImportedLead[];
-  imports: ImportBatch[];
-}
+  buildCsvImportCommit,
+  exportCsvExceptions as buildCsvExceptions,
+  previewCsvImport as buildCsvPreview,
+  type ExtensionState,
+  type ImportPreview
+} from "@horizon/shared/import-workflow";
+import { createExtensionStateStore } from "@horizon/shared/state-store";
 
 type ExtensionMessage =
   | { type: "GET_STATE" }
@@ -93,13 +35,7 @@ type ExtensionMessage =
   | { type: "COMMIT_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
   | { type: "EXPORT_CSV_EXCEPTIONS"; campaignId: string; fileName: string; csvText: string };
 
-const EMPTY_STATE: ExtensionState = {
-  campaigns: [],
-  activeCampaignId: null,
-  queueTasks: [],
-  leads: [],
-  imports: []
-};
+const stateStore = createExtensionStateStore(chrome.storage.local);
 
 // Serialize state-changing messages so concurrent popup/side-panel requests do not overwrite each other.
 let stateMutationTail: Promise<void> = Promise.resolve();
@@ -111,19 +47,11 @@ function serializeStateMutation<T>(operation: () => Promise<T>): Promise<T> {
 }
 
 async function loadState(): Promise<ExtensionState> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
-  const raw = stored[STORAGE_KEY] as Partial<ExtensionState> | undefined;
-  return {
-    campaigns: raw?.campaigns ?? [],
-    activeCampaignId: raw?.activeCampaignId ?? null,
-    queueTasks: raw?.queueTasks ?? [],
-    leads: raw?.leads ?? [],
-    imports: raw?.imports ?? []
-  };
+  return stateStore.load();
 }
 
 async function saveState(state: ExtensionState): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEY]: state });
+  await stateStore.save(state);
 }
 
 // Runs once per service-worker activation. Interrupted work is flagged for review;
@@ -236,156 +164,16 @@ async function updateTask(input: { taskId: string; nextStatus: QueueTaskStatus; 
   return next;
 }
 
-function countCampaignLeads(leads: CanonicalImportedLead[], campaignId: string): number {
-  return leads.filter((lead) => lead.campaignId === campaignId).length;
-}
-
-function getImportableCampaign(state: ExtensionState, campaignId: string): Campaign {
-  const campaign = state.campaigns.find((item) => item.id === campaignId);
-  if (!campaign) throw new Error("Campaign not found.");
-  if (!["queued", "running", "paused"].includes(campaign.status)) {
-    throw new Error("Import is available only while the campaign is queued, running, or paused.");
-  }
-  if (!campaign.sourceConfig.csvImport) {
-    throw new Error("CSV / manual import was not enabled in this campaign's source settings.");
-  }
-  return campaign;
-}
-
-function prepareCsvImport(
-  state: ExtensionState,
-  campaignId: string,
-  fileName: string,
-  csvText: string
-): PreparedCsvImport {
-  const campaign = getImportableCampaign(state, campaignId);
-  const safeFileName = (fileName.trim() || "leads.csv").slice(0, 128);
-  const parsed = parseLeadCsv(csvText);
-  const currentLeadCount = countCampaignLeads(state.leads, campaignId);
-  let workingLeads = state.leads;
-  let createdCount = 0;
-  let mergedCount = 0;
-  let duplicateCount = 0;
-  let needsReviewCount = 0;
-  let overCapacityCount = 0;
-  const issues: ImportIssue[] = [...parsed.issues];
-  const rows: ImportPreviewRow[] = [];
-  const exportExceptions: ImportExceptionExportRow[] = [];
-
-  for (const row of parsed.rows) {
-    const beforeCount = countCampaignLeads(workingLeads, campaignId);
-    const attempt = deduplicateImportedLeads([row], workingLeads, {
-      campaignId,
-      now: new Date().toISOString(),
-      createId: makeId,
-      maxLeads: campaign.targetCount
-    });
-    const decision = attempt.decisions[0];
-
-    if (decision.action === "over_capacity") {
-      overCapacityCount += 1;
-      const reason = `Row ${row.rowNumber} was not imported because the campaign target of ${campaign.targetCount} leads is full.`;
-      issues.push({
-        code: "campaign_capacity_exceeded",
-        message: reason,
-        severity: "warning",
-        rowNumber: row.rowNumber
-      });
-      exportExceptions.push({
-        rowNumber: row.rowNumber,
-        rawFields: row.rawFields,
-        status: "over_capacity",
-        reason
-      });
-      rows.push({
-        rowNumber: row.rowNumber,
-        businessName: row.businessName,
-        action: "over_capacity",
-        reason: decision.reason,
-        reviewFlags: row.reviewFlags
-      });
-      continue;
-    }
-
-    workingLeads = attempt.leads;
-    switch (decision.action) {
-      case "created":
-        createdCount += 1;
-        break;
-      case "merged":
-        mergedCount += 1;
-        break;
-      case "duplicate":
-        duplicateCount += 1;
-        break;
-      case "needs_review":
-        needsReviewCount += 1;
-        break;
-    }
-    rows.push({
-      rowNumber: row.rowNumber,
-      businessName: row.businessName,
-      action: decision.action,
-      reason: decision.reason,
-      reviewFlags: row.reviewFlags
-    });
-    // Defensive assertion: a single incoming row must never increase the count by more than one.
-    if (countCampaignLeads(workingLeads, campaignId) - beforeCount > 1) {
-      throw new Error("Import would exceed the one-row queue invariant.");
-    }
-  }
-
-  for (const rejected of parsed.rejectedRows) {
-    const nameField = Object.entries(rejected.rawFields)
-      .find(([header]) => /business[\\s_-]*name|^business$|^name$/i.test(header));
-    const reason = rejected.issues.map((issue) => issue.message).join(" ");
-    exportExceptions.push({
-      rowNumber: rejected.rowNumber,
-      rawFields: rejected.rawFields,
-      status: "rejected",
-      reason
-    });
-    rows.push({
-      rowNumber: rejected.rowNumber,
-      businessName: nameField?.[1] || "(missing business name)",
-      action: "rejected",
-      reason
-    });
-  }
-  rows.sort((left, right) => left.rowNumber - right.rowNumber);
-
-  return {
-    preview: {
-      campaignId,
-      fileName: safeFileName,
-      canCommit: createdCount + mergedCount + duplicateCount + needsReviewCount > 0,
-      totalRows: parsed.totalRows,
-      acceptedRows: parsed.acceptedCount,
-      rejectedRows: parsed.rejectedCount,
-      warningCount: issues.filter((issue) => issue.severity === "warning").length,
-      createdCount,
-      mergedCount,
-      duplicateCount,
-      needsReviewCount,
-      overCapacityCount,
-      currentLeadCount,
-      finalLeadCount: countCampaignLeads(workingLeads, campaignId),
-      targetCount: campaign.targetCount,
-      issues: issues.slice(0, 100),
-      rows: rows.slice(0, 100)
-    },
-    finalLeads: workingLeads,
-    exportExceptions
-  };
-}
-
 async function previewCsvImport(
   campaignId: string,
   fileName: string,
   csvText: string
 ): Promise<ImportPreview> {
   const state = await loadState();
-  return prepareCsvImport(state, campaignId, fileName, csvText).preview;
+  return buildCsvPreview(state, campaignId, fileName, csvText, {
+    now: new Date().toISOString(),
+    createId: makeId
+  });
 }
 
 async function exportCsvExceptions(
@@ -394,16 +182,10 @@ async function exportCsvExceptions(
   csvText: string
 ): Promise<{ fileName: string; csvText: string; exceptionCount: number }> {
   const state = await loadState();
-  const prepared = prepareCsvImport(state, campaignId, fileName, csvText);
-  const baseName = prepared.preview.fileName
-    .replace(/\.csv$/i, "")
-    .replace(/[^a-z0-9._-]+/gi, "_")
-    .slice(0, 100) || "leads";
-  return {
-    fileName: `${baseName}-exceptions.csv`,
-    csvText: stringifyImportExceptions(prepared.exportExceptions),
-    exceptionCount: prepared.exportExceptions.length
-  };
+  return buildCsvExceptions(state, campaignId, fileName, csvText, {
+    now: new Date().toISOString(),
+    createId: makeId
+  });
 }
 
 async function commitCsvImport(
@@ -412,32 +194,13 @@ async function commitCsvImport(
   csvText: string
 ): Promise<{ state: ExtensionState; importResult: ImportPreview }> {
   await ensureRecovered();
-  const state = await loadState();
-  const prepared = prepareCsvImport(state, campaignId, fileName, csvText);
-  if (!prepared.preview.canCommit) throw new Error("The CSV contains no valid business rows to import.");
-
-  const now = new Date().toISOString();
-  const batch: ImportBatch = {
-    id: makeId(),
-    campaignId,
-    fileName: prepared.preview.fileName,
-    importedAt: now,
-    parsedRows: prepared.preview.totalRows,
-    rejectedRows: prepared.preview.rejectedRows,
-    warningCount: prepared.preview.warningCount,
-    createdCount: prepared.preview.createdCount,
-    mergedCount: prepared.preview.mergedCount,
-    duplicateCount: prepared.preview.duplicateCount,
-    needsReviewCount: prepared.preview.needsReviewCount,
-    overCapacityCount: prepared.preview.overCapacityCount
-  };
-  const next: ExtensionState = {
-    ...state,
-    leads: prepared.finalLeads,
-    imports: [batch, ...state.imports].slice(0, 100)
-  };
-  await saveState(next);
-  return { state: next, importResult: prepared.preview };
+  const current = await loadState();
+  const result = buildCsvImportCommit(current, campaignId, fileName, csvText, {
+    now: new Date().toISOString(),
+    createId: makeId
+  });
+  await saveState(result.state);
+  return result;
 }
 
 chrome.runtime.onInstalled.addListener(() => {
