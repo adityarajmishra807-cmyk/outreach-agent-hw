@@ -15,6 +15,10 @@
     "./deduplication": {
       "types": "./src/deduplication.ts",
       "import": "./src/deduplication.ts"
+    },
+    "./import-workflow": {
+      "types": "./src/import-workflow.ts",
+      "import": "./src/import-workflow.ts"
     }
   }
 }
