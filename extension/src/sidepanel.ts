@@ -9,7 +9,8 @@ import type {
   ResearchCategory,
   ResearchNote,
   ResearchNoteInput,
-  SourceIntakeEvent
+  SourceIntakeEvent,
+  summarizeLeadResearch
 } from "@horizon/shared/import-workflow";
 
 interface ImportBatch {
@@ -446,6 +447,22 @@ function renderLeadList(leads: CanonicalImportedLead[]): void {
     ).length;
     metadata.textContent = `${lead.sourceEvidence.length} source record${lead.sourceEvidence.length === 1 ? "" : "s"} · ${researchCount} research note${researchCount === 1 ? "" : "s"} · ${lead.status.replaceAll("_", " ")}`;
     main.append(title, details, metadata);
+
+    if (latestState) {
+      const research = summarizeLeadResearch(latestState, lead.campaignId, lead.id);
+      const researchStatus = document.createElement("small");
+      researchStatus.className = "lead-research-status" + (research.readiness === "needs_verification" ? " needs-verification" : "");
+      const readinessLabel = research.readiness === "not_started"
+        ? "Research not started"
+        : research.readiness === "needs_verification"
+          ? "Evidence needs verification"
+          : "Evidence recorded";
+      const categories = research.categoriesCovered.map((category) => RESEARCH_CATEGORY_LABELS[category]);
+      researchStatus.textContent = categories.length
+        ? `${readinessLabel} · ${categories.join(", ")}`
+        : readinessLabel;
+      main.append(researchStatus);
+    }
 
     const badge = document.createElement("span");
     badge.className = `lead-status-badge ${lead.status === "duplicate_review" || lead.status === "identity_review" ? "needs-review" : ""}`;
