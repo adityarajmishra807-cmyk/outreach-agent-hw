@@ -15,12 +15,14 @@ import {
 } from "@horizon/shared";
 import {
   addManualLead as buildAddManualLead,
+  addResearchNote as buildAddResearchNote,
   buildCsvImportCommit,
   exportCsvExceptions as buildCsvExceptions,
   previewCsvImport as buildCsvPreview,
   type ExtensionState,
   type ImportPreview,
-  type ManualLeadInput
+  type ManualLeadInput,
+  type ResearchNoteInput
 } from "@horizon/shared/import-workflow";
 import { createExtensionStateStore } from "@horizon/shared/state-store";
 
@@ -36,7 +38,8 @@ type ExtensionMessage =
   | { type: "PREVIEW_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
   | { type: "COMMIT_CSV_IMPORT"; campaignId: string; fileName: string; csvText: string }
   | { type: "EXPORT_CSV_EXCEPTIONS"; campaignId: string; fileName: string; csvText: string }
-  | { type: "ADD_MANUAL_LEAD"; campaignId: string; lead: ManualLeadInput };
+  | { type: "ADD_MANUAL_LEAD"; campaignId: string; lead: ManualLeadInput }
+  | { type: "ADD_RESEARCH_NOTE"; campaignId: string; note: ResearchNoteInput };
 
 const stateStore = createExtensionStateStore(chrome.storage.local);
 
@@ -192,6 +195,20 @@ async function exportCsvExceptions(
 }
 
 
+async function addResearchNote(
+  campaignId: string,
+  note: ResearchNoteInput
+): Promise<ReturnType<typeof buildAddResearchNote>> {
+  await ensureRecovered();
+  const current = await loadState();
+  const result = buildAddResearchNote(current, campaignId, note, {
+    now: new Date().toISOString(),
+    createId: makeId
+  });
+  if (result.created) await saveState(result.state);
+  return result;
+}
+
 async function addManualSourceLead(
   campaignId: string,
   lead: ManualLeadInput
@@ -265,6 +282,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         );
         const { state, ...manualResult } = added;
         return { ok: true, state, manualResult };
+      }
+      case "ADD_RESEARCH_NOTE": {
+        const saved = await serializeStateMutation(() =>
+          addResearchNote(message.campaignId, message.note)
+        );
+        const { state, ...researchResult } = saved;
+        return { ok: true, state, researchResult };
       }
     }
   };
