@@ -465,7 +465,7 @@ prepareExceptionsButton?.addEventListener("click", async () => {
       throw new Error("There are no rejected or over-capacity rows to export.");
     }
 
-    const blob = new Blob(["\\uFEFF", response.csvText.replace(/^\\uFEFF/, "")], {
+    const blob = new Blob([response.csvText], {
       type: "text/csv;charset=utf-8"
     });
     exceptionDownloadUrl = URL.createObjectURL(blob);
