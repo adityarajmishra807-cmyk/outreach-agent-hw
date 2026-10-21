@@ -16,6 +16,14 @@ No Meta API will be used. Source automation must be off by default. A public pag
 | Search/business data provider | Provider not chosen yet | Disabled pending review | Select after checking coverage, terms, storage/reuse rights, cost, and API limits | Assume Google Search result scraping or provider terms allow commercial lead storage without review |
 | CSV/manual entry | User-provided records | Enabled | Validate, normalize, deduplicate, retain source/provenance columns | Import data whose collection/use is unauthorized, or collect unnecessary personal/sensitive data |
 
+## Phase 3 implementation status — manual-assisted intake
+
+The extension implements user-entered prospect records for individually reviewed sources. Users provide the business details, URL, and factual notes; the extension does not issue HTTP requests, open source tabs, or extract page content. The selected campaign's source configuration is checked in the shared workflow and again reflected in the UI. CSV rows that declare a source type whose campaign toggle is off are reported as rejected and included in the exceptions export. Source intake events are stored locally with timestamp, source type, URL, outcome, and review details.
+
+This is a workflow convenience, not approval of an automated collection method. Meta/Instagram extraction remains gated, Google Maps scraping remains out of scope, and website fetching/crawling is not enabled.
+
+Phase 3 implementation plan: [docs/PHASE-3-PLAN.md](PHASE-3-PLAN.md).
+
 ## Why Meta/Instagram extraction is gated
 
 Meta's Automated Data Collection Terms describe automated/programmatic tools used to navigate, index, access, collect, or retrieve Meta product data and state that express written permission is required for automated data collection. The directly opened policy endpoint redirected to a Meta login wall during this review, so its live full text could not be independently read in the browser session. The policy must be rechecked directly before any browser automation is enabled.
