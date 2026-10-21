@@ -239,6 +239,9 @@ function getImportableCampaign(state: ExtensionState, campaignId: string): Campa
   if (!["queued", "running", "paused"].includes(campaign.status)) {
     throw new Error("Import is available only while the campaign is queued, running, or paused.");
   }
+  if (!campaign.sourceConfig.csvImport) {
+    throw new Error("CSV / manual import was not enabled in this campaign's source settings.");
+  }
   return campaign;
 }
 
