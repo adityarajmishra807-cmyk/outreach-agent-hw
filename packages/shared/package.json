@@ -11,6 +11,10 @@
     "./csv-import": {
       "types": "./src/csv-import.ts",
       "import": "./src/csv-import.ts"
+    },
+    "./deduplication": {
+      "types": "./src/deduplication.ts",
+      "import": "./src/deduplication.ts"
     }
   }
 }
