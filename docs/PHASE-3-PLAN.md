@@ -1,7 +1,7 @@
 # Phase 3 — Lead Source Workflows
 
 **Branch:** `main` only  
-**Status:** Source-aware manual intake, evidence-first research notes, and evidence-coverage summaries are implemented. Final CI verification for the latest UI import fix is pending. Real-Chrome acceptance pending.  
+**Status:** Source-aware manual intake, evidence-first research notes, coverage summaries, and a reviewable research evidence bundle are implemented. CI passed at run 39669685690. Real-Chrome acceptance remains pending.  
 **Phase 2 status:** Implemented and CI-verified; real-Chrome acceptance remains open.
 
 ## Objective
@@ -48,7 +48,17 @@ Make campaign source settings meaningful and give the operator a consistent work
 - [x] Add validation tests for evidence URLs, required facts, lead ownership, confidence/category enums, duplicate records, terminal campaigns, and legacy-state migration.
 - [x] Test research coverage summaries and verification-state transitions without assigning a lead score.
 - [x] Extend local-state persistence coverage and the compiled-worker runtime harness for note creation, deduplication, and restart persistence.
-- [ ] Confirm the current commit passes all CI checks.
+
+### P3.6 — Research evidence bundle
+- [x] Compile campaign context, lead identity, source provenance, lead notes, research observations, confidence levels, hypotheses, and review flags into a plain-text bundle.
+- [x] Separate directly observed notes from notes needing verification, and list opportunity hypotheses in their own section.
+- [x] Include a clear trust boundary: records are user-entered/imported; source pages were not fetched or independently verified by the extension.
+- [x] Add a side-panel control to prepare a snapshot for the selected campaign lead and display the text for manual review/copying.
+- [x] Clear any prior bundle when state/lead selection changes so an outdated snapshot is not mistaken for current data.
+- [x] Test output separation, source attribution, safe-use wording, line breaks, and campaign/lead ownership validation.
+- [x] Run the compiled module-worker harness against the built MV3 worker and its packaged local chunks.
+- [x] CI passed at [run 39669685690](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39669685690): 72 tests across 7 test files, type checks, extension/dashboard builds, module/resource verification, and worker runtime checks.
+- [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
 - [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
 
 ## Explicitly not enabled
@@ -70,4 +80,4 @@ Make campaign source settings meaningful and give the operator a consistent work
 
 ## Next slice after this one
 
-Next, make a **research evidence bundle** that compiles the user's recorded facts, source URLs, categories, confidence levels, and separate opportunity hypotheses into a reviewable summary for each lead. This becomes the evidence input for later server-side Gemini draft generation. Do not automatically fetch websites or treat user-entered observations as independently verified. Supabase runtime persistence/authentication remains a later step.
+The next major phase is **server-side Gemini draft generation** using the evidence bundle as input. The backend should generate a draft only from supplied evidence, validate the output schema, keep observations separate from hypotheses, and fall back to neutral wording when evidence is missing. Configure API credentials server-side only; handle quota/model errors without losing leads or research notes. Keep draft editing/copying user-controlled. Do not introduce automated Instagram sending. Supabase runtime persistence/authentication can be integrated after draft workflow and data ownership are reviewed.
