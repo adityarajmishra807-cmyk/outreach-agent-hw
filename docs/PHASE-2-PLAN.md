@@ -84,7 +84,7 @@ First acceptance implementation may store leads and import metadata in `chrome.s
 - [x] Add backward-compatible lead/import state to the existing `chrome.storage.local` record.
 - [x] Serialize campaign state mutations and enforce campaign association, source selection, status constraints, and the configured campaign cap.
 - [x] Add worker messages for CSV preview and confirmed commit, with structured validation/deduplication outcomes and bounded import history.
-- [ ] Add CSV export for rejected rows and/or a clear download path for correcting and re-importing them.
+- [x] Add CSV export for rejected and over-capacity rows with original input columns, status, row number, and correction reason.
 - [ ] Add persistence/integration tests around extension storage and transactional import behavior.
 
 ### P2.4 — Import UI and campaign lead queue
