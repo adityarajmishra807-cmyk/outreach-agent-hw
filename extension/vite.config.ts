@@ -8,6 +8,14 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: "@horizon/shared/import-workflow",
+        replacement: resolve(root, "../packages/shared/src/import-workflow.ts")
+      },
+      {
+        find: "@horizon/shared/state-store",
+        replacement: resolve(root, "src/state-store.ts")
+      },
+      {
         find: "@horizon/shared/csv-import",
         replacement: resolve(root, "../packages/shared/src/csv-import.ts")
       },
