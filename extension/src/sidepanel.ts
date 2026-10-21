@@ -1,7 +1,8 @@
 import "./sidepanel.css";
-import type { Campaign, CampaignConfig, QueueTask } from "@horizon/shared";
+import type { Campaign, CampaignConfig, LeadSource, QueueTask } from "@horizon/shared";
 import type { CanonicalImportedLead, ImportDecisionAction } from "@horizon/shared/deduplication";
 import type { ImportIssue } from "@horizon/shared/csv-import";
+import type { AddManualLeadResult, ManualLeadInput, SourceIntakeEvent } from "@horizon/shared/import-workflow";
 
 interface ImportBatch {
   id: string;
@@ -24,6 +25,7 @@ interface ExtensionState {
   queueTasks: QueueTask[];
   leads: CanonicalImportedLead[];
   imports: ImportBatch[];
+  sourceEvents: SourceIntakeEvent[];
 }
 
 interface ImportPreviewRow {
@@ -65,6 +67,7 @@ type WorkerResponse =
       fileName?: string;
       csvText?: string;
       exceptionCount?: number;
+      manualResult?: Omit<AddManualLeadResult, "state">;
     }
   | { ok: false; error: string };
 
@@ -93,6 +96,14 @@ const importIssueListNode = document.querySelector<HTMLUListElement>("#import-is
 const leadCountBadgeNode = document.querySelector<HTMLElement>("#lead-count-badge");
 const leadListEmptyNode = document.querySelector<HTMLElement>("#lead-list-empty");
 const leadListRowsNode = document.querySelector<HTMLElement>("#lead-list-rows");
+const manualLeadForm = document.querySelector<HTMLFormElement>("#manual-lead-form");
+const manualSourceTypeNode = document.querySelector<HTMLSelectElement>("#manual-source-type");
+const manualSourceHelpNode = document.querySelector<HTMLElement>("#manual-source-help");
+const manualLeadSubmitButton = document.querySelector<HTMLButtonElement>("#manual-lead-submit");
+const manualSourceErrorNode = document.querySelector<HTMLElement>("#manual-source-error");
+const manualSourceStatusNode = document.querySelector<HTMLElement>("#manual-source-status");
+const sourceActivityEmptyNode = document.querySelector<HTMLElement>("#source-activity-empty");
+const sourceActivityListNode = document.querySelector<HTMLElement>("#source-activity-list");
 
 let latestState: ExtensionState | null = null;
 let selectedCsvText: string | null = null;
@@ -146,6 +157,88 @@ function canImportFor(campaign?: Campaign): boolean {
     campaign.sourceConfig.csvImport &&
     ["queued", "running", "paused"].includes(campaign.status)
   );
+}
+
+function sourceTypeLabel(sourceType: LeadSource): string {
+  const labels: Record<LeadSource, string> = {
+    meta_ad_library_manual: "Meta Ad Library (manual)",
+    instagram_manual: "Instagram (user-reviewed)",
+    business_website: "Business website",
+    google_maps_manual: "User-supplied Maps reference",
+    csv_import: "CSV import",
+    other_permitted_source: "Other permitted source"
+  };
+  return labels[sourceType];
+}
+
+function isManualSourceEnabled(campaign: Campaign, sourceType: LeadSource): boolean {
+  switch (sourceType) {
+    case "business_website": return campaign.sourceConfig.businessWebsites;
+    case "instagram_manual": return campaign.sourceConfig.instagram;
+    case "meta_ad_library_manual": return campaign.sourceConfig.metaAdLibrary;
+    case "csv_import":
+    case "google_maps_manual":
+    case "other_permitted_source": return campaign.sourceConfig.csvImport;
+    default: return false;
+  }
+}
+
+function updateManualLeadControls(): void {
+  const campaign = latestState ? activeCampaign(latestState) : undefined;
+  const selectedType = (manualSourceTypeNode?.value || "other_permitted_source") as LeadSource;
+  const campaignReady = Boolean(campaign && ["queued", "running", "paused"].includes(campaign.status));
+  const enabled = Boolean(campaign && isManualSourceEnabled(campaign, selectedType) && campaignReady);
+  if (manualLeadSubmitButton) manualLeadSubmitButton.disabled = !enabled;
+
+  if (!campaign) {
+    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "Create a campaign first. This form never fetches or scrapes source pages.";
+  } else if (!campaignReady) {
+    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "Manual intake is disabled for completed, cancelled, or failed campaigns.";
+  } else if (!isManualSourceEnabled(campaign, selectedType)) {
+    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "This source is disabled for the active campaign. Enable its matching source setting in Campaign Setup.";
+  } else {
+    if (manualSourceHelpNode) manualSourceHelpNode.textContent = "Enabled for this campaign. Enter details and URLs you personally reviewed; no automated extraction occurs.";
+  }
+}
+
+function renderSourceActivity(state: ExtensionState, campaignId?: string): void {
+  const list = requireNode(sourceActivityListNode, "#source-activity-list");
+  const empty = requireNode(sourceActivityEmptyNode, "#source-activity-empty");
+  list.replaceChildren();
+  const events = campaignId
+    ? (state.sourceEvents ?? []).filter((event) => event.campaignId === campaignId).slice(0, 12)
+    : [];
+  if (!events.length) {
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  for (const entry of events) {
+    const item = document.createElement("article");
+    item.className = "source-activity-row";
+    const heading = document.createElement("div");
+    heading.className = "source-activity-heading";
+    const title = document.createElement("strong");
+    title.textContent = entry.businessName;
+    const action = document.createElement("span");
+    action.className = "import-action-label";
+    action.textContent = entry.action.replaceAll("_", " ");
+    heading.append(title, action);
+    const source = document.createElement("small");
+    source.textContent = sourceTypeLabel(entry.sourceType) + (entry.sourceUrl ? " · " + entry.sourceUrl : "");
+    item.append(heading, source);
+    if (entry.reason) {
+      const reason = document.createElement("small");
+      reason.textContent = entry.reason;
+      item.append(reason);
+    }
+    if (entry.reviewFlags.length) {
+      const flags = document.createElement("small");
+      flags.textContent = "Review: " + entry.reviewFlags.map((flag) => flag.replaceAll("_", " ")).join(", ");
+      item.append(flags);
+    }
+    list.append(item);
+  }
 }
 
 function updateImportControls(): void {
@@ -274,7 +367,9 @@ function render(state: ExtensionState): void {
   resumeButton!.disabled = !active || !["paused", "queued"].includes(active.status);
   stopButton!.disabled = !active || !["queued", "running", "paused"].includes(active.status);
   renderLeadList(activeLeads);
+  renderSourceActivity(state, active?.id);
   updateImportControls();
+  updateManualLeadControls();
 }
 
 function makePreviewRow(row: ImportPreviewRow): HTMLElement {
@@ -380,6 +475,71 @@ async function refresh(): Promise<void> {
   const state = await sendMessage({ type: "GET_STATE" });
   render(state);
 }
+
+manualSourceTypeNode?.addEventListener("change", () => {
+  if (manualSourceErrorNode) manualSourceErrorNode.textContent = "";
+  if (manualSourceStatusNode) manualSourceStatusNode.textContent = "";
+  updateManualLeadControls();
+});
+
+manualLeadForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (manualSourceErrorNode) manualSourceErrorNode.textContent = "";
+  if (manualSourceStatusNode) manualSourceStatusNode.textContent = "";
+  try {
+    const state = await getCurrentState();
+    const campaign = activeCampaign(state);
+    if (!campaign) throw new Error("Create a campaign before adding a researched lead.");
+    const formData = new FormData(requireNode(manualLeadForm, "#manual-lead-form"));
+    const lead: ManualLeadInput = {
+      businessName: String(formData.get("businessName") ?? "").trim(),
+      location: String(formData.get("location") ?? "").trim(),
+      websiteUrl: String(formData.get("websiteUrl") ?? "").trim(),
+      instagramUsername: String(formData.get("instagramUsername") ?? "").trim(),
+      instagramUrl: String(formData.get("instagramUrl") ?? "").trim(),
+      sourceUrl: String(formData.get("sourceUrl") ?? "").trim(),
+      sourceType: String(formData.get("sourceType") ?? "other_permitted_source") as LeadSource,
+      notes: String(formData.get("notes") ?? "").trim()
+    };
+    const response = await sendRawMessage({
+      type: "ADD_MANUAL_LEAD",
+      campaignId: campaign.id,
+      lead
+    });
+    if (!response.state || !response.manualResult) throw new Error("The worker returned no manual-intake result.");
+
+    render(response.state);
+    const result = response.manualResult;
+    const labels: Record<string, string> = {
+      created: "Lead added to the campaign queue.",
+      merged: "Details and source evidence merged into the existing lead.",
+      duplicate: "This exact source record is already present; no duplicate lead was created.",
+      needs_review: "A separate review record was saved because identity fields conflict.",
+      over_capacity: "The campaign target is full; the lead was not added."
+    };
+    let status = labels[result.action] ?? "Manual source intake completed.";
+    if (result.candidateIds?.length) {
+      const candidates = result.candidateIds.map((id) =>
+        response.state?.leads.find((candidate) => candidate.id === id)?.businessName ?? id
+      );
+      status += " Potential matches: " + candidates.join(", ") + ".";
+    }
+    if (result.reason) status += " " + result.reason;
+    if (result.reviewFlags.length) status += " Review flags: " + result.reviewFlags.map((flag) => flag.replaceAll("_", " ")).join(", ") + ".";
+    if (manualSourceStatusNode) manualSourceStatusNode.textContent = status;
+    if (result.action === "over_capacity" || result.action === "needs_review" || result.reviewFlags.length) {
+      manualSourceStatusNode?.classList.add("import-warning");
+    } else {
+      manualSourceStatusNode?.classList.remove("import-warning");
+    }
+    if (result.action !== "over_capacity") manualLeadForm.reset();
+    updateManualLeadControls();
+  } catch (error) {
+    if (manualSourceErrorNode) {
+      manualSourceErrorNode.textContent = error instanceof Error ? error.message : "Could not add the researched lead.";
+    }
+  }
+});
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
