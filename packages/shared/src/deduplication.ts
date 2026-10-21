@@ -21,6 +21,8 @@ export interface CanonicalImportedLead {
   instagramUrl?: string;
   identityStatus: "unmatched" | "candidate" | "verified" | "rejected";
   status: LeadStatus;
+  /** Canonical lead IDs that triggered manual duplicate review. */
+  candidateIds?: string[];
   sourceEvidence: LeadSourceProvenance[];
   importFingerprints: string[];
   notes: string[];
@@ -137,6 +139,7 @@ function unique(values: string[]): string[] {
 function cloneLead(lead: CanonicalImportedLead): CanonicalImportedLead {
   return {
     ...lead,
+    candidateIds: lead.candidateIds ? [...lead.candidateIds] : undefined,
     sourceEvidence: [...lead.sourceEvidence],
     importFingerprints: [...lead.importFingerprints],
     notes: [...lead.notes],
@@ -149,7 +152,8 @@ function newCanonicalLead(
   campaignId: string,
   id: string,
   now: string,
-  needsReview = false
+  needsReview = false,
+  candidateIds: string[] = []
 ): CanonicalImportedLead {
   const reviewFlags = unique([
     ...row.reviewFlags,
@@ -167,6 +171,7 @@ function newCanonicalLead(
     instagramUrl: row.instagramUrl,
     identityStatus: needsReview ? "candidate" : (validInstagramUsername(row.instagramUsername, row.reviewFlags) ? "candidate" : "unmatched"),
     status: needsReview ? "duplicate_review" : (row.reviewFlags.includes("invalid_instagram_username") ? "identity_review" : "discovered"),
+    candidateIds: needsReview ? [...candidateIds] : undefined,
     sourceEvidence: [{ ...row.provenance }],
     importFingerprints: [row.importFingerprint],
     notes: row.notes ? [row.notes] : [],
@@ -302,7 +307,8 @@ export function deduplicateImportedLeads(
         options.campaignId,
         options.createId(),
         now,
-        true
+        true,
+        candidates.map((lead) => lead.id)
       );
       leads.push(reviewLead);
       createdCount += 1;
