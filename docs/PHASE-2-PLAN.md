@@ -1,7 +1,7 @@
 # Phase 2 — Lead Ingestion and Deduplication Plan
 
 **Branch:** `main` only  
-**Status:** Planned; implementation begins after this plan is reviewed  
+**Status:** In progress — CSV parser, import validation, deduplication, local persistence, worker preview/commit, and lead queue UI are implemented. Chrome acceptance testing remains.  
 **Phase 1 prerequisite:** Complete. The user confirmed the packaged extension loads and the campaign controls work.
 
 ## Objective
@@ -69,33 +69,36 @@ First acceptance implementation may store leads and import metadata in `chrome.s
 ## Proposed work breakdown
 
 ### P2.1 — Domain model and import contract
-- Add `ImportLeadRow`, `ImportIssue`, `ImportSummary`, and source provenance types.
-- Implement a robust CSV parser dependency or a standards-compliant parser module; avoid hand-written split-on-comma parsing.
-- Add schema/header detection, row validation, URL/handle normalization, and deterministic import fingerprints.
-- Unit-test malformed files, duplicate headers, empty rows, and quoting/newlines.
+- [x] Add `ImportLeadRow`, `ImportIssue`, `ImportSummary`, and source provenance types in `packages/shared/src/csv-import.ts`.
+- [x] Add a CSV parser for quoted commas, doubled quotes, embedded newlines, BOM and CRLF/LF; reject malformed quoting.
+- [x] Add header aliases, row validation, URL/handle normalization, warning/review flags, deterministic fingerprints, a 2 MB byte cap and 5,000-row safety cap.
+- [x] Unit-test malformed files, duplicate/blank headers, empty names, row-width mismatches, blank-line row numbers, and quoting/newlines.
 
 ### P2.2 — Canonical identity and deduplication
-- Implement deterministic strong-key matching (handle, domain, name+location).
-- Keep exact duplicate handling separate from ambiguous-candidate review.
-- Merge fields without dropping provenance or overwriting better evidence.
-- Test re-import idempotency and conflicts.
+- [x] Implement deterministic matching by Instagram handle, website domain, then business name plus location.
+- [x] Keep exact duplicate handling separate from ambiguous-candidate review.
+- [x] Merge missing fields without dropping source provenance or overwriting populated fields.
+- [x] Add a configurable campaign cap, default behavior for a maximum of 100, plus tests for re-import idempotency, invalid handles, conflicting identities and capacity.
 
 ### P2.3 — Persistence and worker API
-- Add versioned lead/import state to the extension storage record or implement the verified persistence adapter selected in P2.1.
-- Serialize state mutations, enforce campaign association and 1–100 accepted-lead cap, and store import summaries/checkpoints.
-- Add worker messages for preview/import/list/export with structured validation results.
+- [x] Add backward-compatible lead/import state to the existing `chrome.storage.local` record.
+- [x] Serialize campaign state mutations and enforce campaign association, source selection, status constraints, and the configured campaign cap.
+- [x] Add worker messages for CSV preview and confirmed commit, with structured validation/deduplication outcomes and bounded import history.
+- [ ] Add CSV export for rejected rows and/or a clear download path for correcting and re-importing them.
+- [ ] Add persistence/integration tests around extension storage and transactional import behavior.
 
 ### P2.4 — Import UI and campaign lead queue
-- Choose CSV, view detected columns and preview rows, see rejected rows and duplicate/review counts, and confirm import.
-- Display canonical leads with business name, website/handle, source attribution, status, and identity-review flags.
-- Show total accepted leads and the remaining campaign capacity.
-- Support pause/stop without losing data and preserve data after closing/reopening the side panel.
+- [x] Choose a CSV and preview per-row outcomes before confirming import.
+- [x] Show counts for valid/rejected/new/merged/duplicate/review/over-capacity rows and validation notes.
+- [x] Display canonical leads with business name, website/handle, source count, status, and review flags.
+- [x] Show current lead count against campaign target and report over-capacity rows.
+- [ ] Verify local persistence, import confirmation, re-import idempotency, and cap behavior manually in Chrome on the newly packaged build.
 
 ### P2.5 — Regression and user acceptance
-- Add automated tests for parser edge cases, deduplication, provenance retention, repeated imports, campaign cap, and local persistence logic.
-- Keep safety tests that prohibit automated sending and unapproved website/content-script permissions.
-- Run tests, typecheck, extension/dashboard builds, and package a new Chrome artifact.
-- Manually verify CSV import, duplicate behavior, row errors, capacity enforcement, and persistence in Chrome before marking Phase 2 complete.
+- [x] Add parser/deduplication tests for malformed files, field normalization, provenance retention, repeated imports, campaign cap, conflicts and no-send safety.
+- [x] Keep safety tests that prohibit automated sending and unapproved website/content-script permissions.
+- [x] Latest CI passed at [run 39658061055](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39658061055) for tests, type checks, extension/dashboard builds and artifact packaging.
+- [ ] Manually verify CSV import, duplicate behavior, row errors, capacity enforcement, and persistence in Chrome before marking Phase 2 complete.
 
 ## Acceptance criteria
 
