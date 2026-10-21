@@ -85,7 +85,7 @@ First acceptance implementation may store leads and import metadata in `chrome.s
 - [x] Serialize campaign state mutations and enforce campaign association, source selection, status constraints, and the configured campaign cap.
 - [x] Add worker messages for CSV preview and confirmed commit, with structured validation/deduplication outcomes and bounded import history.
 - [x] Add CSV export for rejected and over-capacity rows with original input columns, status, row number, and correction reason.
-- [ ] Add persistence/integration tests around extension storage and transactional import behavior.
+- [x] Add persistence/integration tests around extension storage and transactional import behavior in `tests/import-persistence.test.ts` (legacy-state migration, full-state round-trip, failed write, commit/rollback, idempotent re-import, cap enforcement, exception export).
 
 ### P2.4 — Import UI and campaign lead queue
 - [x] Choose a CSV and preview per-row outcomes before confirming import.
@@ -97,7 +97,7 @@ First acceptance implementation may store leads and import metadata in `chrome.s
 ### P2.5 — Regression and user acceptance
 - [x] Add parser/deduplication tests for malformed files, field normalization, provenance retention, repeated imports, campaign cap, conflicts and no-send safety.
 - [x] Keep safety tests that prohibit automated sending and unapproved website/content-script permissions.
-- [x] Latest CI passed at [run 39658061055](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39658061055) for tests, type checks, extension/dashboard builds and artifact packaging.
+- [x] Latest CI passed at [run 39660969945](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39660969945): all 50 tests passed, TypeScript checks passed, both builds passed, and the unpacked extension artifact uploaded.
 - [ ] Manually verify CSV import, duplicate behavior, row errors, capacity enforcement, and persistence in Chrome before marking Phase 2 complete.
 
 ## Acceptance criteria
