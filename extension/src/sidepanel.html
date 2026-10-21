@@ -63,6 +63,10 @@
             <button type="button" id="preview-csv" class="secondary" disabled>Preview CSV</button>
             <button type="button" id="confirm-csv" class="primary" disabled hidden>Import accepted rows</button>
           </div>
+          <div class="import-export-actions">
+            <button type="button" id="prepare-exceptions-csv" class="secondary" disabled hidden>Prepare rejected / over-capacity CSV</button>
+            <a id="download-exceptions-csv" class="download-link" hidden>Download exceptions CSV</a>
+          </div>
           <p id="import-error" class="error" role="alert" aria-live="polite"></p>
           <div id="import-preview" class="import-preview" aria-live="polite" hidden>
             <div id="import-summary" class="import-summary"></div>
