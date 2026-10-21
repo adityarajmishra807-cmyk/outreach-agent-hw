@@ -23,6 +23,12 @@
       ],
       "@horizon/shared/deduplication": [
         "../packages/shared/src/deduplication.ts"
+      ],
+      "@horizon/shared/import-workflow": [
+        "../packages/shared/src/import-workflow.ts"
+      ],
+      "@horizon/shared/state-store": [
+        "src/state-store.ts"
       ]
     }
   },
