@@ -1,6 +1,6 @@
 # Chrome extension
 
-Initial Manifest V3 side-panel scaffold for Phase 1.
+Chrome Manifest V3 side panel for the Horizon Works Outreach Agent.
 
 ## Build locally
 
@@ -13,19 +13,40 @@ npm run typecheck
 npm run build --workspace @horizon/extension
 ```
 
-Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and choose `extension/dist`. The GitHub Actions workflow also uploads the built `extension/dist` folder as an artifact named `horizon-agent-chrome-extension` when its CI run passes.
+Then open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and choose `extension/dist`. The GitHub Actions workflow also uploads the built extension folder as `horizon-agent-chrome-extension` when CI passes.
 
-## What works in this foundation
+## Current features
 
-- Campaign setup with a target count from 1 to 100.
-- Campaign persistence in `chrome.storage.local` for this Chrome profile.
-- Validated queued/running/paused/cancelled campaign state transitions.
-- Persistent queue-task primitives in the extension worker: enqueue, transition status, count task states, and safe handling of interrupted tasks.
-- Pause/resume/stop controls.
-- Side-panel UI and saved campaign state.
+- Create a campaign with a target of 1–100 leads.
+- Persist campaigns and queue state in `chrome.storage.local` for this Chrome profile.
+- Import a CSV with preview and explicit confirmation.
+- Validate headers and rows; report rejected records and invalid optional fields.
+- Deduplicate against campaign leads by normalized Instagram handle, website domain, then business name + location.
+- Preserve source evidence on merges, make unchanged imports idempotent, and flag ambiguous/conflicting identities for review.
+- Enforce the campaign lead cap and display a lead queue with status/source/review flags.
+- Show pause/resume/stop controls.
 
-## Not connected yet
+## CSV format
 
-The current campaign UI does not import leads or execute live source adapters. Supabase is not connected at runtime and the current queue is local to this Chrome profile. Gemini drafting, browser tab navigation, and Instagram inspection are not implemented. These are later-phase work.
+Required header: `businessName` (aliases: `business_name`, `business`, `name`).
 
-The manifest deliberately has no host permissions and no content scripts. Meta/Instagram extraction remains gated pending review of the specific access method. Google Maps scraping is out of scope. No automated message sending exists.
+Optional headers: `location`, `websiteUrl` (also `website`, `website_url`, `domain`), `instagramUsername` (also `instagram`, `instagram_handle`, `username`), `instagramUrl`, `sourceUrl`, `sourceType`, `notes`.
+
+The parser accepts UTF-8/BOM, quoted commas, escaped quotes and embedded newlines. It caps file size at 2 MB and input at 5,000 rows. Invalid required fields and malformed rows are rejected; invalid optional URLs/handles are flagged for review. Review preview outcomes before confirming import.
+
+## Manual QA
+
+1. Create a campaign and keep **CSV / manual import** enabled in Lead sources.
+2. Select a CSV and click **Preview CSV**.
+3. Inspect accepted, rejected, duplicate, merged, needs-review and over-capacity rows.
+4. Click **Import accepted rows** to persist the preview result.
+5. Re-import the same file; identical records should be reported as duplicates, without increasing the canonical lead count.
+6. Close/reopen the side panel and verify the campaign lead queue is still present.
+7. Use a campaign with a low target (e.g. 2) and a CSV with more unique records to verify over-capacity rows remain unimported.
+8. Check that warning/rejected rows explain what needs review or correction.
+
+The current storage is local to the Chrome profile. Supabase runtime auth/persistence is not connected and there is no cloud sync. Source scraping/profile navigation remains disabled. No automated Instagram message sending exists.
+
+## Safety boundaries
+
+The manifest deliberately declares no broad host permissions and no content scripts. Meta/Instagram extraction remains gated pending method-specific review. Google Maps scraping is out of scope. No automated sending or follow-up scheduling is implemented.
