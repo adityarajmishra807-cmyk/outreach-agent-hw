@@ -1,7 +1,7 @@
 # Phase 3 — Lead Source Workflows
 
-**Branch:** \`main\` only  
-**Status:** P3.1 manual-assisted source intake implemented; automated verification passed. Real-Chrome acceptance pending.  
+**Branch:** `main` only  
+**Status:** P3.1 source-aware manual intake and P3.5 evidence-first research notes implemented; automated verification pending for the latest research-note changes. Real-Chrome acceptance pending.  
 **Phase 2 status:** Implemented and CI-verified; real-Chrome acceptance remains open.
 
 ## Objective
@@ -23,10 +23,10 @@ Make campaign source settings meaningful and give the operator a consistent work
 - [x] Persist a bounded local source-intake activity log with source type, evidence URL, action, timestamp, review flags, and canonical/candidate lead references.
 - [x] Show the latest 12 source intake events for the active campaign.
 - [x] Migrate existing Phase 1/2 state by initializing the new activity list when it is absent.
-- [x] Preserve source events locally in the same \`chrome.storage.local\` state record. This is not cloud sync.
+- [x] Preserve source events locally in the same `chrome.storage.local` state record. This is not cloud sync.
 
 ### P3.3 — Enforce source access choices during CSV import
-- [x] Rows declaring \`business_website\`, \`instagram_manual\`, or \`meta_ad_library_manual\` are rejected when the corresponding campaign source is disabled.
+- [x] Rows declaring `business_website`, `instagram_manual`, or `meta_ad_library_manual` are rejected when the corresponding campaign source is disabled.
 - [x] Rejected source rows are represented in preview, counted as rejected, and exported with a correction reason.
 - [x] Keep overall CSV import disabled unless CSV/manual import is enabled for the campaign.
 
@@ -36,6 +36,18 @@ Make campaign source settings meaningful and give the operator a consistent work
 - [x] Extend the compiled service-worker harness to verify manual lead creation, source evidence, idempotency, and disabled-source rejection.
 - [x] CI passed at [run 39665750593](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39665750593), including tests, type checks, extension/dashboard builds, manifest/resource verification, and compiled-worker runtime checks.
 - [ ] Run the side panel in a real Chrome profile when available; browser UI acceptance has not been performed by this environment.
+
+### P3.5 — Evidence-first research notes
+- [x] Add structured observation categories for services, website experience, contact path, booking/purchase flow, public content, and other factual observations.
+- [x] Require a specific observation and a valid HTTP/HTTPS evidence URL; reject URLs containing credentials and normalize away fragments.
+- [x] Store a potential opportunity as a separately labelled hypothesis, not as an observed fact.
+- [x] Record a confidence state: directly observed or needs verification.
+- [x] Persist notes locally by campaign and lead, deduplicate exact repeats, and keep a recent evidence log in the side panel.
+- [x] Show note counts in the campaign lead queue and keep the evidence URL visible for user review.
+- [x] Add validation tests for evidence URLs, required facts, lead ownership, confidence/category enums, duplicate records, terminal campaigns, and legacy-state migration.
+- [x] Extend local-state persistence coverage and the compiled-worker runtime harness for note creation, deduplication, and restart persistence.
+- [ ] Confirm the current commit passes all CI checks.
+- [ ] Run the side panel in real Chrome when available; the environment has not completed a real-profile UI test.
 
 ## Explicitly not enabled
 
@@ -52,8 +64,8 @@ Make campaign source settings meaningful and give the operator a consistent work
 2. Invalid optional URLs/handles are retained only as review flags, not trusted canonical URLs.
 3. No private messages, credentials, session cookies, tokens, or sensitive personal data should be entered.
 4. Source activity history is bounded to 500 most recent events in local extension storage.
-5. Continue direct commits to \`main\` only.
+5. Continue direct commits to `main` only.
 
 ## Next slice after this one
 
-Once source-gated manual intake is validated, the next candidate is a **user-approved website research helper** that presents the entered URL and a structured checklist for the operator to record public business observations manually. Do not add automatic HTTP fetches until the particular collection method and applicable access rules are reviewed. After source workflows are reliable, proceed to server-side Gemini draft generation and only then consider Supabase runtime persistence/authentication.
+After research-note UI acceptance, Phase 3 can add evidence-aware qualification summaries that draw only from the user's recorded observations, clearly distinguish facts from hypotheses, and flag missing/uncertain evidence. Do not add automatic HTTP fetches until the specific collection method and applicable access rules are reviewed. After source workflows are reliable, proceed to server-side Gemini draft generation and only then consider Supabase runtime persistence/authentication.
