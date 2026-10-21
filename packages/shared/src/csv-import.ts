@@ -34,6 +34,7 @@ export interface ImportLeadRow {
   websiteDomain?: string;
   instagramUsername?: string;
   instagramUrl?: string;
+  sourceUrl?: string;
   notes?: string;
   sourceType: LeadSource;
   provenance: LeadSourceProvenance;
@@ -578,6 +579,7 @@ export function parseLeadCsv(csvText: string, options: ParseLeadCsvOptions = {})
       websiteDomain,
       instagramUsername,
       instagramUrl,
+      sourceUrl,
       notes,
       sourceType,
       provenance,
