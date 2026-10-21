@@ -185,6 +185,16 @@
           <p id="research-notes-empty" class="empty-state">No research notes recorded for this campaign yet.</p>
           <div id="research-notes-list" class="research-notes-list"></div>
         </section>
+        <section class="campaign-section research-bundle-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">EVIDENCE OUTPUT</p><h2>Prepare a research bundle</h2></div>
+            <span class="limit">LOCAL TEXT</span>
+          </div>
+          <p class="import-help">Prepare a plain-text review bundle for the selected lead. It separates user-asserted observations from items needing verification and potential opportunity hypotheses. Nothing is sent anywhere; copy the text manually if you need it elsewhere.</p>
+          <button type="button" id="prepare-evidence-bundle" class="secondary" disabled>Prepare evidence bundle</button>
+          <p id="evidence-bundle-status" class="import-file-status" role="status" aria-live="polite">Choose a lead in the research form above.</p>
+          <textarea id="evidence-bundle-output" rows="16" readonly hidden aria-label="Research evidence bundle output" spellcheck="false"></textarea>
+        </section>
         <section class="campaign-section source-activity-section">
           <div class="section-heading">
             <div><p class="eyebrow">PROVENANCE</p><h2>Recent source activity</h2></div>
