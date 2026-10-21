@@ -249,6 +249,43 @@ failure(await send({
   lead: { businessName: "Disabled Website Source", websiteUrl: "https://disabled.example", sourceType: "business_website" }
 }), "This source is disabled", "Manual source gating");
 
+// Research notes require a lead, a specific observation, and a valid evidence URL.
+const manualLeadId = manualAdded.state.leads.find((lead) => lead.campaignId === manualCampaignId).id;
+const researchInput = {
+  leadId: manualLeadId,
+  category: "services_offered",
+  observation: "The services page lists personal training and small-group coaching.",
+  evidenceUrl: "https://manual-north.example/services#overview",
+  potentialOpportunity: "A clearer enquiry path might help visitors compare coaching options.",
+  confidence: "needs_verification"
+};
+const researchAdded = success(await send({
+  type: "ADD_RESEARCH_NOTE",
+  campaignId: manualCampaignId,
+  note: researchInput
+}), "Add research note");
+assert.equal(researchAdded.researchResult.created, true);
+assert.equal(researchAdded.researchResult.note.evidenceUrl, "https://manual-north.example/services");
+assert.equal(researchAdded.state.researchNotes.length, 1);
+assert.equal(researchAdded.state.researchNotes[0].leadId, manualLeadId);
+const researchRepeated = success(await send({
+  type: "ADD_RESEARCH_NOTE",
+  campaignId: manualCampaignId,
+  note: researchInput
+}), "Repeat research note");
+assert.equal(researchRepeated.researchResult.created, false);
+assert.equal(researchRepeated.state.researchNotes.length, 1);
+failure(await send({
+  type: "ADD_RESEARCH_NOTE",
+  campaignId: manualCampaignId,
+  note: { ...researchInput, evidenceUrl: "javascript:alert(1)" }
+}), "valid evidence URL", "Research evidence URL validation");
+failure(await send({
+  type: "ADD_RESEARCH_NOTE",
+  campaignId: manualCampaignId,
+  note: { ...researchInput, leadId: "not-a-lead" }
+}), "Choose a lead from the active campaign", "Research lead campaign ownership");
+
 // Invalid rows can be previewed but not committed.
 const invalidCsv = "businessName,location\n,Dehradun\n";
 const invalidPreview = success(await send({
@@ -292,5 +329,7 @@ assert.equal(processing.state.queueTasks.find((task) => task.id === "harness-tas
 startWorker();
 const recovered = success(await send({ type: "GET_STATE" }), "Get state after worker restart").state;
 assert.equal(recovered.queueTasks.find((task) => task.id === "harness-task-1").status, "needs_review");
+assert.equal(recovered.researchNotes.length, 1);
+assert.equal(recovered.researchNotes[0].leadId, manualLeadId);
 
-console.log("Built service-worker runtime verification passed (campaign state, CSV preview/commit, idempotency, provenance, export, cap, validation, failed writes, and restart recovery).");
+console.log("Built service-worker runtime verification passed (campaign state, CSV workflow, source intake, evidence-first research notes, idempotency, validation, failed writes, and restart recovery).");
