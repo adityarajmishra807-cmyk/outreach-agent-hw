@@ -306,9 +306,6 @@ function prepareCsvImport(
       case "needs_review":
         needsReviewCount += 1;
         break;
-      case "over_capacity":
-        // Handled above, but kept exhaustive for future decision actions.
-        break;
     }
     rows.push({
       rowNumber: row.rowNumber,
