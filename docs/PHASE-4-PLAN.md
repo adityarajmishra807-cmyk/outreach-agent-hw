@@ -1,7 +1,7 @@
 # Phase 4 — Server-Side Gemini Draft Generation
 
 **Branch:** main only  
-**Status:** First implementation slice committed and CI-verified at [run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999): 86 tests across 8 test files, type checks, both builds, and extension runtime/resource checks passed. A live Gemini API call, private deployment configuration, and real browser acceptance remain unverified.
+**Status:** Gemini output-budget recovery is implemented on the Vercel deployment repo and CI-verified in the canonical repo at [run 39741681447](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39741681447): 88 tests, type checks, extension/dashboard builds, extension runtime/resource checks, and the isolated Node 24 Next.js build passed. A fresh live Gemini request after this fix still needs confirmation from the Draft Studio because the production API key is private and the deployment cannot be accessed from this test environment.
 
 ## Objective
 
@@ -18,6 +18,11 @@ Generate editable, evidence-grounded outreach drafts from the user's research ev
 - [x] Request structured JSON and validate draft size, allowed fields, review notes, and evidence references.
 - [x] Reject model citations that do not normalize to a URL already present in the supplied bundle.
 - [x] Map disabled configuration, access denial, bad requests, timeout, invalid output, Gemini quota/rate limit, and upstream errors to structured messages without returning upstream response bodies or secrets.
+- [x] Raise the initial Gemini output-token limit to 8,192 (from 2,048) while keeping thinking level low.
+- [x] Automatically retry one response ending in MAX_TOKENS with a 16,384-token budget so the user does not have to manually press Generate again.
+- [x] Show a specific final output-limit message if the automatic retry is still truncated, rather than returning the old generic incomplete-draft message.
+- [x] Add a regression test for first-attempt truncation followed by a successful retry.
+- [x] Make CI installs non-audit/non-fund and cancel superseded runs to reduce stalled/redundant CI attempts.
 - [x] Add a best-effort per-process request limiter and same-origin request check. These are additional safeguards, not a substitute for durable rate limiting and user authentication.
 - [x] Add a web Draft Studio UI: paste a bundle, choose tone, generate an editable draft, see evidence references and review notes, and copy the edited text manually.
 - [x] Mark the generated output as needs_review, saved false, and requiresManualReview true.
@@ -26,9 +31,9 @@ Generate editable, evidence-grounded outreach drafts from the user's research ev
 
 ## Security and release gates still open
 
-- [x] CI passed on the implementation code: 86 tests across 8 test files, type checks, extension/dashboard builds, and extension runtime/resource verification ([run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999)).
-- [x] CI passed on the latest code commit: 86 tests across 8 test files, type checks, both builds, and extension runtime/resource verification ([run 39689093999](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39689093999)).
+- [x] CI passed on the retry fix commit: 88 tests across 8 test files, type checks, extension/dashboard builds, module/resource verification, and the isolated Node 24 web build ([run 39741681447](https://github.com/adityarajmishra807-cmyk/outreach-agent-hw/actions/runs/39741681447)).
 - [ ] Confirm CI passes on this documentation update.
+- [ ] Run a fresh live Gemini generation in the production Draft Studio; configuration health was confirmed, but a live model response after this fix has not yet been observed here.
 - [ ] Configure GEMINI_API_KEY, GEMINI_MODEL, DRAFT_STUDIO_ACCESS_KEY, and GEMINI_DRAFTS_ENABLED only in the server environment.
 - [ ] Before enabling this endpoint on a public Vercel deployment, put it behind a real authenticated user/session system and durable edge or shared-store rate limiting. The shared access key and in-memory limiter are a transitional single-operator gate, not multi-user authentication.
 - [ ] Review Gemini free-tier data handling and ensure only business-relevant, non-sensitive evidence is submitted.
