@@ -46,11 +46,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Install monorepo workspaces
+      - name: Create an isolated copy of the Vercel root directory
+        run: mkdir -p /tmp/horizon-web-root && cp -R web/. /tmp/horizon-web-root/
+      - name: Install only the web app dependencies
         run: npm install
-      - name: Type-check Next.js app from its own directory
+        working-directory: /tmp/horizon-web-root
+      - name: Type-check standalone Next.js app
         run: npm run typecheck
-        working-directory: web
-      - name: Build Next.js app from its own directory
+        working-directory: /tmp/horizon-web-root
+      - name: Build standalone Next.js app
         run: npm run build
-        working-directory: web
+        working-directory: /tmp/horizon-web-root
