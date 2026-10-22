@@ -154,8 +154,8 @@ export async function POST(request: Request): Promise<Response> {
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: GEMINI_DRAFT_RESPONSE_SCHEMA,
-          temperature: 0.3,
-          maxOutputTokens: 768
+          thinkingConfig: { thinkingLevel: "low" },
+          maxOutputTokens: 2048
         }
       })
     });
@@ -191,8 +191,26 @@ export async function POST(request: Request): Promise<Response> {
   }
   const geminiPayload = payload as GeminiGenerateContentResponse;
   const candidate = geminiPayload.candidates?.[0];
-  if (!candidate || (candidate.finishReason && !["STOP"].includes(candidate.finishReason))) {
-    return jsonError(502, "GEMINI_OUTPUT_INCOMPLETE", "Gemini did not return a complete draft. Try again or review the input bundle.");
+  if (!candidate) {
+    const blockReason = geminiPayload.promptFeedback?.blockReason;
+    if (blockReason) {
+      return jsonError(502, "GEMINI_PROMPT_BLOCKED", "Gemini blocked this research bundle (" + blockReason + "). Remove irrelevant or sensitive material and try again.");
+    }
+    return jsonError(502, "GEMINI_NO_CANDIDATE", "Gemini returned no draft candidate. Try again with a shorter research bundle.");
+  }
+
+  const finishReason = candidate.finishReason;
+  if (finishReason && finishReason !== "STOP") {
+    if (finishReason === "MAX_TOKENS") {
+      return jsonError(502, "GEMINI_OUTPUT_LIMIT", "Gemini used its response budget before finishing the structured draft. The request now uses low thinking effort and a larger output budget; retry once.");
+    }
+    if (["SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"].includes(finishReason)) {
+      return jsonError(502, "GEMINI_OUTPUT_BLOCKED", "Gemini blocked the generated response (" + finishReason + "). Try removing irrelevant or sensitive details from the research bundle.");
+    }
+    if (finishReason === "RECITATION") {
+      return jsonError(502, "GEMINI_RECITATION_BLOCKED", "Gemini could not return this draft because the response triggered a recitation filter. Retry with a shorter, more factual bundle.");
+    }
+    return jsonError(502, "GEMINI_OUTPUT_INCOMPLETE", "Gemini stopped before completing the draft (reason: " + finishReason + "). Review the research bundle and retry.");
   }
 
   const responseText = candidate.content?.parts
