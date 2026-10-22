@@ -36,3 +36,21 @@ jobs:
           path: extension/dist/
           if-no-files-found: error
           retention-days: 7
+
+  verify-vercel-web-root:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 24 (Vercel runtime major)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install monorepo workspaces
+        run: npm install
+      - name: Type-check Next.js app from its own directory
+        run: npm run typecheck
+        working-directory: web
+      - name: Build Next.js app from its own directory
+        run: npm run build
+        working-directory: web
