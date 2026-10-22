@@ -213,6 +213,42 @@ describe("evidence-grounded Gemini draft generation", () => {
     expect(new Headers(init?.headers).get("x-goog-api-key")).toBe("server-only-test-key-should-not-be-returned");
     expect(JSON.stringify(JSON.parse(String(init?.body)))).toContain("Do not invent services, metrics, results");
     expect(new Headers(init?.headers).get("cache-control")).toBeNull();
+    const generationConfig = JSON.parse(String(init?.body)).generationConfig;
+    expect(generationConfig).toMatchObject({
+      thinkingConfig: { thinkingLevel: "low" },
+      maxOutputTokens: 2048
+    });
+    expect(generationConfig).not.toHaveProperty("temperature");
+  });
+
+  it("gives a specific retry message when Gemini exhausts its output token budget", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      candidates: [{
+        finishReason: "MAX_TOKENS",
+        content: { parts: [] }
+      }]
+    }), { status: 200, headers: { "content-type": "application/json" } })));
+    const response = await POST(request({ evidenceBundle: EVIDENCE_BUNDLE }, { ip: "192.0.2.54" }));
+    const payload = await responseJson(response);
+    expect(response.status).toBe(502);
+    expect(payload).toMatchObject({
+      ok: false,
+      error: {
+        code: "GEMINI_OUTPUT_LIMIT",
+        message: expect.stringContaining("response budget")
+      }
+    });
+  });
+
+  it("explains when Gemini blocks the prompt before returning a candidate", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      candidates: [],
+      promptFeedback: { blockReason: "SAFETY" }
+    }), { status: 200, headers: { "content-type": "application/json" } })));
+    const response = await POST(request({ evidenceBundle: EVIDENCE_BUNDLE }, { ip: "192.0.2.55" }));
+    const payload = await responseJson(response);
+    expect(response.status).toBe(502);
+    expect(payload).toMatchObject({ ok: false, error: { code: "GEMINI_PROMPT_BLOCKED" } });
   });
 
   it("maps Gemini quota errors to a retryable structured response", async () => {
