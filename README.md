@@ -37,7 +37,7 @@ The Phase 1 foundation is complete on `main`: CI passed the manifest-path fix, a
 
 **Phase 3 — implemented; real Chrome UI acceptance pending.** The extension supports source-aware lead intake, structured research notes, evidence coverage, and a local plain-text research bundle. It does not fetch or scrape source pages. The bundle is user-entered/imported evidence, not independent verification. See [Phase 3 plan](docs/PHASE-3-PLAN.md).
 
-**Current milestone: Phase 4 — server-side Gemini draft generation.** A guarded Next.js endpoint calls Gemini using a server-side key, validates response structure and evidence URL references, and maps quota/timeout errors to actionable messages. The Draft Studio lets the user paste a research bundle, choose tone, edit the returned draft, inspect evidence references, and copy it manually. Drafts are not saved or sent. Generation is disabled by default; public deployment should remain disabled until a real user-authentication layer and durable rate limiting are in place. See [Phase 4 plan](docs/PHASE-4-PLAN.md).
+**Current milestone: Phase 4 — server-side Gemini draft generation.** The guarded Next.js endpoint now starts with an 8,192-token output budget and automatically retries a truncated Gemini response once at 16,384 tokens. The Draft Studio supports editable drafts, evidence references, review notes, and manual copying only. Drafts are not saved or sent. The production health endpoint has reported Gemini generation enabled, but a new live generation after the token-budget fix still needs confirmation. The current access-key gate is not full user authentication, so rotate any key exposed in chat and restrict production access. See [Phase 4 plan](docs/PHASE-4-PLAN.md).
 
 ## Development
 
@@ -56,7 +56,7 @@ To load the extension after building, open `chrome://extensions`, enable Develop
 
 ## Security
 
-Use .env.example as the environment-variable reference. For local web testing, configure the variables in web/.env.local; for Vercel, use the project's server-side environment settings. GEMINI_API_KEY must never be exposed to a client bundle. Keep GEMINI_DRAFTS_ENABLED=false by default. A separate DRAFT_STUDIO_ACCESS_KEY is a transitional single-operator gate, not account authentication; do not enable Gemini on a public deployment until real authentication and durable rate limiting protect the endpoint. Review Supabase RLS before applying migrations to a deployed project.
+Use .env.example as the environment-variable reference. For local web testing, configure the variables in web/.env.local; for Vercel, use the project's server-side environment settings. GEMINI_API_KEY must never be exposed to a client bundle. Keep GEMINI_DRAFTS_ENABLED=false by default outside an explicitly configured environment. A separate DRAFT_STUDIO_ACCESS_KEY is a transitional single-operator gate, not account authentication; restrict the production endpoint and add real authentication plus durable rate limiting before broader use. Rotate any access key exposed in conversation. Review Supabase RLS before applying migrations to a deployed project.
 
 ## Branching
 
