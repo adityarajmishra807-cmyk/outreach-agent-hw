@@ -216,7 +216,7 @@ describe("evidence-grounded Gemini draft generation", () => {
     const generationConfig = JSON.parse(String(init?.body)).generationConfig;
     expect(generationConfig).toMatchObject({
       thinkingConfig: { thinkingLevel: "low" },
-      maxOutputTokens: 2048
+      maxOutputTokens: 8192
     });
     expect(generationConfig).not.toHaveProperty("temperature");
   });
