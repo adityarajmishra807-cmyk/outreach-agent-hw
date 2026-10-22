@@ -251,6 +251,39 @@ describe("evidence-grounded Gemini draft generation", () => {
     expect(payload).toMatchObject({ ok: false, error: { code: "GEMINI_PROMPT_BLOCKED" } });
   });
 
+  it("automatically retries a truncated Gemini response with a larger output budget", async () => {
+    const firstAttempt = {
+      candidates: [{ finishReason: "MAX_TOKENS", content: { parts: [] } }]
+    };
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockReset();
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(firstAttempt), {
+        status: 200, headers: { "content-type": "application/json" }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        candidates: [{
+          finishReason: "STOP",
+          content: { parts: [{ text: JSON.stringify(GOOD_MODEL_OUTPUT) }] }
+        }]
+      }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const response = await POST(request({ evidenceBundle: EVIDENCE_BUNDLE, tone: "warm_professional" }, {
+      ip: "192.0.2.61"
+    }));
+    const payload = await responseJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({ ok: true, draft: { draftText: GOOD_MODEL_OUTPUT.draftText } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    const retryBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+    expect(firstBody.generationConfig.maxOutputTokens).toBe(8192);
+    expect(retryBody.generationConfig.maxOutputTokens).toBe(16384);
+    expect(firstBody.generationConfig.thinkingConfig.thinkingLevel).toBe("low");
+    expect(retryBody.generationConfig.thinkingConfig.thinkingLevel).toBe("low");
+  });
+
   it("maps Gemini quota errors to a retryable structured response", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
       error: { message: "private upstream details" }
