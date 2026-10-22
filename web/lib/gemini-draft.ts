@@ -18,8 +18,12 @@ export interface ValidatedDraft {
 export interface GeminiGenerateContentResponse {
   candidates?: Array<{
     finishReason?: string;
+    finishMessage?: string;
     content?: { parts?: Array<{ text?: string }> };
   }>;
+  promptFeedback?: {
+    blockReason?: string;
+  };
 }
 
 export type DraftGenerationInputResult =
