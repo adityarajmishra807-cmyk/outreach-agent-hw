@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,7 +25,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Run domain and policy tests
         run: npm test
       - name: Type-check workspaces
@@ -39,6 +44,7 @@ jobs:
 
   verify-vercel-web-root:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -49,7 +55,7 @@ jobs:
       - name: Create an isolated copy of the Vercel root directory
         run: mkdir -p /tmp/horizon-web-root && cp -R web/. /tmp/horizon-web-root/
       - name: Install only the web app dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
         working-directory: /tmp/horizon-web-root
       - name: Type-check standalone Next.js app
         run: npm run typecheck
